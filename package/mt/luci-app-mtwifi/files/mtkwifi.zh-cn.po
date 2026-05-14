@@ -1,0 +1,3 @@
+msgid "MTK Wireless"
+msgstr "MTK 无线"
+
