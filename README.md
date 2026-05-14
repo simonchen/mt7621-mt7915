@@ -1,5 +1,5 @@
 # mt7621-mt7915
-mt7915 DBDC drivers for mt7621 openwrt devices.
+mt7915 DBDC MTK close driver or mt7621 openwrt devices.
 
 This is forked from https://github.com/bricco1981/mt7621-mtk7915
 
