@@ -981,4 +981,44 @@ function mtkwifi.restart_8021x(devname, devices)
     os.execute("rt2860apd -i "..main_ifname.." -p "..prefix)
 end
 
+local function parse_raw_stat(text)
+    local res = {}
+    if not text then return res end
+
+    -- clear first line
+    text = string.gsub(text, "^.-[\r\n]+", "")
+
+    res._order = {}
+    for line in string.gmatch(text, "[^\r\n]+") do
+        line = string.match(line, "^%s*(.-)%s*$")
+        local k, v = string.match(line, "([^=]+)%s*=%s*(.*)")
+        if not k then k, v = string.match(line, "([%w_&%s]+)%s+(.*)") end
+
+        if k and v then
+            -- k = string.match(k, "^%s*(.-)%s*%.*#*$")
+            k = string.gsub(k, "%.+", "")
+            k = string.match(k, "^%s*(.-)%s*$")
+            res[string.match(k, "^%s*(.-)%s*$")] = v
+            table.insert(res._order, k)
+        end
+    end
+
+    return res
+end
+
+function mtkwifi.get_vif_stat(vifname)
+    if not vifname or not string.match(vifname, "^[A-Za-z0-9_]+$") then
+        return nil, "Invalid interface name"
+    end
+
+    local p = io.popen("iwpriv " .. vifname .. " stat", "r")
+    if not p then return nil, "Failed to run iwpriv" end
+
+    local raw = p:read("*all")
+    p:close()
+
+    if not raw or raw == "" then return nil, "No data" end
+    return parse_raw_stat(raw)
+end
+
 return mtkwifi
