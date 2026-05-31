@@ -1,0 +1,75 @@
+#!/bin/sh
+
+if [ "$ACTION" = "add" ] || [ "$ACTION" = "update" ] || [ "$ACTION" = "old" ]; then
+	sleep 2
+
+	lock_interface() {
+		local ifname=$1
+		#dmesg -c > /dev/null
+		stainfo=$(iwpriv "$ifname" show stainfo 2>/dev/null)
+		#echo "$stainfo"
+		echo "$stainfo" | awk -v iface="$ifname" '
+			/([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}/ {
+				match($0, /([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}/)
+				mac = toupper(substr($0, RSTART, RLENGTH))
+				wcid = 0
+				found_wcid = 0
+				found_bw = 0
+				nss_lock = "1"
+				idx = 0
+				next
+			}
+			mac != "" && found_wcid == 0 && (/^[[:space:]]*\[[0-9[:space:].]+\][[:space:]]*-?[0-9]+[[:space:]]*$/ || $0 ~ /-?[0-9]+[[:space:]]*$/) {
+				match($0, /-?[0-9]+[[:space:]]*$/)
+				val = substr($0, RSTART, RLENGTH) + 0
+				idx++
+				if (idx == 2) {
+					if (val > 0 && val < 255) {
+						wcid = val
+						found_wcid = 1
+					} else {
+						mac = ""
+					}
+				}
+				next
+			}
+			mac != "" && found_wcid == 1 && /[0-9]+M/ {
+				found_bw = 1
+				next
+			}
+			mac != "" && found_wcid == 1 && found_bw == 1 {
+				nss_lock = "1"
+				if (match($0, /[1-9]S-M/)) { 
+					nss_lock = substr($0, RSTART, 1) + 0
+					$0 = substr($0, RSTART + RLENGTH)  
+					while (match($0, /[1-9]S-M/)) {
+						val = substr($0, RSTART, 1) + 0
+						if (val > nss_lock) nss_lock = val
+						$0 = substr($0, RSTART + RLENGTH)
+					}
+				} else if (match($0, /-?[0-9]+[[:space:]]*$/)) {
+					val = substr($0, RSTART, RLENGTH) + 0
+					if (val > 0) {
+						nss_lock = int(val / 16) + 1
+					}
+				}
+				
+				if (nss_lock > 1) {
+					cmd = "iwpriv " iface " set FixedVhtNss=" wcid "-" nss_lock
+					system("logger -t mtk-lock-sta-nss [" mac "] \"Executing: " cmd "\"")
+					system(cmd " >/dev/null 2>&1")
+					cmd = "iwpriv " iface " set AutoRate=" wcid
+                                        system("logger -t mtk-lock-sta-nss [" mac "] \"Executing: " cmd "\"")
+                                        system(cmd " >/dev/null 2>&1")
+					cmd = "iwpriv " iface " set AutoRateUl=" wcid
+                                        system("logger -t mtk-lock-sta-nss [" mac "] \"Executing: " cmd "\"")
+                                        system(cmd " >/dev/null 2>&1")
+				}
+				mac = ""
+			}
+		'
+	}
+
+	lock_interface "ra0"
+	lock_interface "rax0"
+fi

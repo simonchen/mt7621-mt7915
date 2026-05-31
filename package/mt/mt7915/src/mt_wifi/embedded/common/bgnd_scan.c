@@ -1735,6 +1735,11 @@ VOID mt_off_ch_scan_dedicated(
 	}
 #endif
 
+// simonchen [IS_CH_ABAND]
+#ifndef IS_CH_ABAND
+#define IS_CH_ABAND(_ch)        \
+                (_ch > 14)
+#endif
     is_aband = (IS_CH_ABAND(control_ch_outband) ? TRUE : FALSE);
 
 	switch (reason) {
@@ -1833,7 +1838,9 @@ VOID bgnd_scan_ipi_cr_init(
 
 	/* clear histogram CR */
 	cmd_rdd_ipi_hist.ipi_hist_idx = RDD_SET_IPI_CR_INIT;
+#ifdef MT_DFS_SUPPORT // simonchen [MT_DFS_SUPPORT]
 	cmd_rdd_ipi_hist.set_val = GET_BGND_PARAM(pAd, OUTBAND_BW);
+#endif
 	ret = mt_cmd_set_rdd_ipi_hist(pAd, &cmd_rdd_ipi_hist);
 	MTWF_LOG(DBG_CAT_AP, DBG_SUBCAT_ALL, DBG_LVL_TRACE,
 			("%s(): BW: %d, ret = %d\n", __func__, cmd_rdd_ipi_hist.set_val, ret));

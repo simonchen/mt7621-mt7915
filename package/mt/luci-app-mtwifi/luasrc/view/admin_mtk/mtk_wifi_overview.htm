@@ -76,7 +76,7 @@ table {
   margin-left:15px;
  }
  .b1 {
-  display:none;
+/*  display:none; */
  }
  .a2 {
   display:none;
@@ -229,24 +229,43 @@ table {
 					<th>MAC-Address</th>
 					<th><div class="a1">Hostname</div></th>
 					<th><div class="a1">IPv4 (DHCP)</div></th>
+					<th><div class="b1">Rate (T/R)</div></th>
 					<th><div class="b1">RSSI - 0/1/2/3</div></th>
 					<th><div class="b1">BW (T/R)</div></th>
 					<th><div class="b1">MCS (T/R)</div></th>
 					<th><div class="b1">GI (T/R)</div></th>
-					<th><div class="b1">Rate (T/R)</div></th>
+					<th><div class="b1">Wcid</div></th>
+                                        <th><div class="b1">Power mode</div></th>
 				</tr>
 			</thead>
 			<tbody>
-				<tr>
-					<td><div class="m1"><%=MAC%></div></td>
-					<td><div class="a1"><%=Host%></div></td>
-					<td><div class="a1"><%=IP%></div></td>
-					<td><div class="b1"><%=RSSI%></div></td>
-					<td><div class="b1"><%=BW%></div></td>
-					<td><div class="b1"><%=MCS%></div></td>
-					<td><div class="b1" id="SGI"><%=SGI%></div></td>
-					<td><div class="b1" id="Rate"><%=Rate%></div></td>
-				</tr>
+<%
+local sta_table = mtkwifis.refresh_sta_table() or {}
+
+for MAC, info in pairs(sta_table) do
+    local Host    = info.host or "-"
+    local IP      = info.ip or "-"
+    local RSSI    = info.rssi or "?"
+    local BW      = info.bw or "-"
+    local MCS     = info.mcs or "?"
+    local SGI     = info.sgi or "?"
+    local Wcid    = info.wcid or "0"
+    local Psmode  = (info.ps_mode == 1) and "Power save" or "Active"
+    local Rate    = info.rate or "-"
+%>
+<tr>
+    <td><div class="m1"><%=MAC%></div></td>
+    <td><div class="a1"><%=Host%></div></td>
+    <td><div class="a1"><%=IP%></div></td>
+    <td><div class="b1" id="Rate"><%=Rate%></div></td>
+    <td><div class="b1"><%=RSSI%></div></td>
+    <td><div class="b1"><%=BW%></div></td>
+    <td><div class="b1"><%=MCS%></div></td>
+    <td><div class="b1" id="SGI"><%=SGI%></div></td>
+    <td><div class="b1" id="Wcid"><%=Wcid%></div></td>
+    <td><div class="b1" id="Psmode"><%=Psmode%></div></td>
+</tr>
+<% end %>
 			</tbody>
 		</table>
 		</fieldset>

@@ -21,6 +21,7 @@ define Package/l1profile
 endef
 
 define Package/l1profile/install
+	$(INSTALL_DIR) $(1)/etc/hotplug.d/dhcp
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_DIR) $(1)/lib/wifi/
 	$(INSTALL_DIR) $(1)/etc/wireless/mt7615/
@@ -31,6 +32,7 @@ define Package/l1profile/install
 	$(INSTALL_BIN) ./files/mt7615.lua $(1)/lib/wifi
 	$(INSTALL_BIN) ./files/firmware.sh $(1)/etc/init.d/
 	$(INSTALL_BIN) ./files/apcli.sh $(1)/etc/init.d/
+	$(INSTALL_BIN) ./files/99-mtk-lock-sta-nss $(1)/etc/hotplug.d/dhcp/
 endef
 
 define Build/Prepare

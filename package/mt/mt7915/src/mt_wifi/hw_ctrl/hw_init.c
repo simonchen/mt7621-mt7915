@@ -17,7 +17,8 @@
 	Module Name:
 	hw_init.c
 */
-
+#include <linux/pci.h>
+#include <linux/of_reserved_mem.h>
 #include "rt_config.h"
 
 /*HW related init*/
@@ -376,8 +377,27 @@ INT32 WfSysPreInit(RTMP_ADAPTER *pAd)
 
 #ifdef MT7915
 
-	if (IS_MT7915(pAd))
+	if (IS_MT7915(pAd)) {
+	    /* ========= 绑定 DTS CMA 区域 ========= */
+	    if (pAd && pAd->OS_Cookie) {
+		POS_COOKIE pObj = (POS_COOKIE)pAd->OS_Cookie;
+		
+		if (pObj->pci_dev) {
+		    struct device *dev = &pObj->pci_dev->dev;
+
+		    if (dev && dev->of_node) {
+			int ret = of_reserved_mem_device_init(dev);
+			if (ret == 0) {
+			    printk(KERN_ERR "MT7915: CMA region successfully bound via DTS.\n");
+			} else {
+			    printk(KERN_ERR "MT7915: Failed to bind CMA region, err=%d\n", ret);
+			}
+		    }
+		}
+	    }
+	    /* ==================================================== */
 		mt7915_init(pAd);
+	}
 
 #endif
 	wifi_sup_list_register(pAd, WIFI_CAP_CHIP);
@@ -395,6 +415,7 @@ INT32 WfSysPosExit(RTMP_ADAPTER *pAd)
 	WfEPROMSysExit(pAd);
 	WfMcuSysExit(pAd);
 	WfHifSysExit(pAd);
+
 	return ret;
 }
 

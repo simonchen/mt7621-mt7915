@@ -1,7 +1,8 @@
 #ifndef __HE_CFG_H__
 #define __HE_CFG_H__
 
-#ifdef CFG_SUPPORT_FALCON_TXCMD_DBG
+#if 1 // simonchen 20260526
+//#ifdef CFG_SUPPORT_FALCON_TXCMD_DBG
 
 #define MAX_NUM_TXCMD_RU_INFO			16
 #define MAX_NUM_TXCMD_TX_USER           	16

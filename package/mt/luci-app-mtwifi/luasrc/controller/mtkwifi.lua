@@ -746,8 +746,8 @@ function vif_cfg(dev, vif)
 end
 
 function apcli_scan_req(ifname)
-	mtkwifi.scan_ap_req(ifname)
-	http.write("ok")
+	local ret = mtkwifi.scan_ap_req(ifname)
+	http.write(ret)
 end
 
 function apcli_scan(ifname)

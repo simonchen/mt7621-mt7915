@@ -11986,6 +11986,12 @@ INT Set_RateAdaptInterval(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
 
 INT Show_DescInfo_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
 INT Show_MacTable_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
+//simonchen (Show_MacTable_Proc_hack > arg is the *PRTMP_VALUE)
+typedef struct {
+    RTMP_IOCTL_INPUT_STRUCT *wrq;
+    RTMP_STRING *arg;
+} RTMP_VALUE, *PRTMP_VALUE;
+INT Show_MacTable_Proc_hack(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
 INT Show_Mib_Info_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
 
 #ifdef ACL_BLK_COUNT_SUPPORT

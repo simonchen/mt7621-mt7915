@@ -153,7 +153,7 @@ BUILD_TIMER_FUNCTION(ATEPeriodicExec);
 BUILD_TIMER_FUNCTION(BackgroundScanTimeout);
 BUILD_TIMER_FUNCTION(dedicated_rx_hist_scan_timeout);
 /*BUILD_TIMER_FUNCTION(DfsZeroWaitTimeout);*/
-#if (DFS_ZEROWAIT_DEFAULT_FLOW == 1)
+#if (defined(MT_DFS_SUPPORT) && (DFS_ZEROWAIT_DEFAULT_FLOW == 1)) // simonchen
 BUILD_TIMER_FUNCTION(dfs_zero_wait_ch_init_timeout);
 #endif /* DFS_ZEROWAIT_DEFAULT_FLOW */
 #endif /* BACKGROUND_SCAN_SUPPORT */

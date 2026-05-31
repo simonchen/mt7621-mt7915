@@ -3172,7 +3172,8 @@ static INT pci_rx_data_done_poll_func(struct napi_struct *napi, int budget)
 	UINT8 *ring_idx;
 	UINT32 int_pending = 0;
 	UINT32 rx_pending;
-	static BOOLEAN need_re_schedule = FALSE;
+	//static // removed no needed by simonchen
+	BOOLEAN need_re_schedule = FALSE;
 	PNDIS_PACKET pkt = NULL;
 	RX_BLK rx_blk;
 
@@ -3242,6 +3243,11 @@ static INT pci_rx_data_done_poll_func(struct napi_struct *napi, int budget)
 		RTMP_SEM_UNLOCK(lock);
 	}
 
+	// simonchen 20260531
+	if (done < budget && napi_complete_done(napi,done)) {
+		mt_int_enable(pAd, pci_hif_chip, int_mask);
+	}
+/*
 	if (done < budget) {
 		napi_complete(napi);
 		RTMP_INT_LOCK(&pci_hif_chip->LockInterrupt, flags);
@@ -3256,7 +3262,7 @@ static INT pci_rx_data_done_poll_func(struct napi_struct *napi, int budget)
 	} else {
 		need_re_schedule = TRUE;
 	}
-
+*/
 	return done;
 }
 #endif
@@ -5197,8 +5203,13 @@ static NDIS_STATUS pci_init_task_group(void *hdev_ctrl)
 
 			hif_chip->schedule_task_ops = &tasklet_napi_schedule_ops;
 			init_dummy_netdev(&task_group->napi_dev);
+			task_group->napi_dev.threaded = 1; // simonchen // napi - threaded
 			task_group->priv = (VOID *)hif_chip;
-			netif_napi_add(&task_group->napi_dev, &task_group->rx_data_done_napi_task, pci_rx_data_done_poll_func, NAPI_POLL_WEIGHT);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+			netif_napi_add_weight(&task_group->napi_dev, &task_group->rx_data_done_napi_task, pci_rx_data_done_poll_func, NAPI_POLL_WEIGHT);
+#else
+			netif_napi_add(&task_group->napi_dev, &task_group->rx_data_done_napi_task, pci_rx_data_done_poll_func, NAPI_POLL_WEIGHT*2);
+#endif
 			ad->tr_ctl.napi = (VOID *)&task_group->rx_data_done_napi_task;
 			napi_enable(&task_group->rx_data_done_napi_task);
 			RTMP_OS_TASKLET_INIT(NULL, &task_group->rx_event_done_task, pci_rx_event_done_func, (unsigned long)hif_chip);

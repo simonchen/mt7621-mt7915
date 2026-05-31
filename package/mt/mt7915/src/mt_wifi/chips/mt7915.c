@@ -156,6 +156,17 @@ static struct dly_ctl_cfg dly_ctl_dl_tbl_hostdma0_r0[] = {
 	 .dly_number = 1,
 	 .dly_time = 28
 	},
+/* COPY from above ul_tbl_xxx */
+        {
+         .avg_tp = 150,
+         .dly_number = 24,
+         .dly_time = 20
+        },
+        {
+         .avg_tp = 240,
+         .dly_number = 48,
+         .dly_time = 27
+        }
 };
 
 static struct dly_ctl_cfg dly_ctl_ul_tbl_hostdma0_r1[] = {
@@ -182,6 +193,17 @@ static struct dly_ctl_cfg dly_ctl_dl_tbl_hostdma0_r1[] = {
 	 .dly_number = 1,
 	 .dly_time = 28
 	},
+/* COPY from above ul_tbl_xxx */
+	{
+         .avg_tp = 150,
+         .dly_number = 24,
+         .dly_time = 20
+        },
+        {
+         .avg_tp = 240,
+         .dly_number = 48,
+         .dly_time = 27
+        }
 };
 
 static struct dly_ctl_cfg dly_ctl_ul_tbl_hostdma1_r1[] = {
@@ -208,6 +230,17 @@ static struct dly_ctl_cfg dly_ctl_dl_tbl_hostdma1_r1[] = {
 	 .dly_number = 1,
 	 .dly_time = 28
 	},
+/* COPY from above ul_tbl_xxx */
+        {
+         .avg_tp = 150,
+         .dly_number = 12,
+         .dly_time = 7
+        },
+        {
+         .avg_tp = 240,
+         .dly_number = 24,
+         .dly_time = 8
+        }
 };
 
 static struct dly_ctl_cfg dly_ctl_ul_tbl_hostdma1_r2[] = {
@@ -234,6 +267,17 @@ static struct dly_ctl_cfg dly_ctl_dl_tbl_hostdma1_r2[] = {
 	 .dly_number = 1,
 	 .dly_time = 28
 	},
+/* COPY from above ul_tbl_xxx */
+        {
+         .avg_tp = 150,
+         .dly_number = 12,
+         .dly_time = 7
+        },
+        {
+         .avg_tp = 240,
+         .dly_number = 24,
+         .dly_time = 8
+        }
 };
 
 const struct hif_pci_rx_ring_desc rx_ring_layout[] = {
@@ -355,6 +399,17 @@ static struct dly_ctl_cfg dly_ctl_dl_tbl_hostdma0_r1_pcie1[] = {
 	 .dly_number = 1,
 	 .dly_time = 28
 	},
+/* COPY from above ul_tbl_xxx */
+        {
+         .avg_tp = 150,
+         .dly_number = 24,
+         .dly_time = 20
+        },
+        {
+         .avg_tp = 240,
+         .dly_number = 48,
+         .dly_time = 27
+        }
 };
 
 static struct dly_ctl_cfg dly_ctl_ul_tbl_hostdma1_r2_pcie1[] = {
@@ -381,6 +436,17 @@ static struct dly_ctl_cfg dly_ctl_dl_tbl_hostdma1_r2_pcie1[] = {
 	 .dly_number = 1,
 	 .dly_time = 28
 	},
+/* COPY from above ul_tbl_xxx */
+        {
+         .avg_tp = 150,
+         .dly_number = 8,
+         .dly_time = 7
+        },
+        {
+         .avg_tp = 240,
+         .dly_number = 16,
+         .dly_time = 8
+        }
 };
 
 const struct hif_pci_rx_ring_desc rx_ring_layout_pcie1[] = {
@@ -5703,15 +5769,18 @@ static VOID chip_irq_init(RTMP_ADAPTER *pAd)
 	RTMP_IO_READ32(pAd->hdev_ctrl, WF_WFDMA_HOST_DMA0_WPDMA_INT_RX_PRI_SEL_ADDR, &reg_val);
 	reg_val |= WF_WFDMA_HOST_DMA0_WPDMA_INT_RX_PRI_SEL_WPDMA_INT_RX_RING0_PRI_SEL_MASK |
 			   WF_WFDMA_HOST_DMA0_WPDMA_INT_RX_PRI_SEL_WPDMA_INT_RX_RING1_PRI_SEL_MASK;
+	reg_val |= 0x000000FF;
 	RTMP_IO_WRITE32(pAd->hdev_ctrl, WF_WFDMA_HOST_DMA0_WPDMA_INT_RX_PRI_SEL_ADDR, reg_val);
 	RTMP_IO_READ32(pAd->hdev_ctrl, WF_WFDMA_HOST_DMA1_WPDMA_INT_RX_PRI_SEL_ADDR, &reg_val);
 	reg_val |= WF_WFDMA_HOST_DMA1_WPDMA_INT_RX_PRI_SEL_WPDMA_INT_RX_RING0_PRI_SEL_MASK |
 			   WF_WFDMA_HOST_DMA1_WPDMA_INT_RX_PRI_SEL_WPDMA_INT_RX_RING1_PRI_SEL_MASK |
 			   WF_WFDMA_HOST_DMA1_WPDMA_INT_RX_PRI_SEL_WPDMA_INT_RX_RING2_PRI_SEL_MASK;
+	reg_val |= 0x000000FF;
 	RTMP_IO_WRITE32(pAd->hdev_ctrl, WF_WFDMA_HOST_DMA1_WPDMA_INT_RX_PRI_SEL_ADDR, reg_val);
 	RTMP_IO_READ32(pAd->hdev_ctrl, WF_WFDMA_HOST_DMA1_WPDMA_INT_TX_PRI_SEL_ADDR, &reg_val);
 	reg_val |= WF_WFDMA_HOST_DMA1_WPDMA_INT_TX_PRI_SEL_WPDMA_INT_TX_RING18_PRI_SEL_MASK |
 			   WF_WFDMA_HOST_DMA1_WPDMA_INT_TX_PRI_SEL_WPDMA_INT_TX_RING19_PRI_SEL_MASK;
+	reg_val |= 0x000000FF;
 	RTMP_IO_WRITE32(pAd->hdev_ctrl, WF_WFDMA_HOST_DMA1_WPDMA_INT_TX_PRI_SEL_ADDR, reg_val);
 
 	if (get_rid_value(master_hif_chip) != DEFAULT_RID) {

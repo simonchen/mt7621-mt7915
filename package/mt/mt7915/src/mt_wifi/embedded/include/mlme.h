@@ -1395,10 +1395,11 @@ typedef struct {
 	UINT BssNr;
 	UCHAR           BssOverlapNr;
 	BSS_ENTRY       BssEntry[MAX_LEN_OF_BSS_TABLE];
-#ifdef CUSTOMER_VENDOR_IE_SUPPORT
+//simonchen 20260526
+//#ifdef CUSTOMER_VENDOR_IE_SUPPORT
 	USHORT		EventBssEntryLen;
 	NDIS_SPIN_LOCK	event_bss_entry_lock;
-#endif /* CUSTOMER_VENDOR_IE_SUPPORT */
+//#endif /* CUSTOMER_VENDOR_IE_SUPPORT */
 } BSS_TABLE, *PBSS_TABLE;
 
 

@@ -6111,7 +6111,7 @@ INT rtmp_ap_init(RTMP_ADAPTER *pAd)
 	struct wifi_dev *wdev = NULL;
 	PWSC_CTRL pWscControl;
 #ifdef CFG_SUPPORT_FALCON_MURU
-	UINT8 u1BandIdx;
+//	UINT8 u1BandIdx;
 #endif /* CFG_SUPPORT_FALCON_MURU */
 
 	for (j = BSS0; j < pAd->ApCfg.BssidNum; j++) {
@@ -6165,6 +6165,7 @@ INT rtmp_ap_init(RTMP_ADAPTER *pAd)
 #endif /* MT_FDB */
 #ifdef CFG_SUPPORT_FALCON_MURU
 	if (IS_MT7915(pAd)) {
+		UINT8 u1BandIdx; // simonchen 20260526
 		/* Send In-Band Command to N9 in MT7915 */
 		for (u1BandIdx = 0; u1BandIdx < DBDC_BAND_NUM; u1BandIdx++)
 			muru_cfg_dlul_limits(pAd, u1BandIdx);
@@ -6243,6 +6244,7 @@ UINT32 starec_ap_feature_decision(struct wifi_dev *wdev, struct _MAC_TABLE_ENTRY
 	UINT32 features = 0;
 	struct _RTMP_CHIP_CAP *cap = hc_get_chip_cap(ad->hdev_ctrl);
 
+	// simonchen (OBSOLETED) [Disable PowerSave record]
 	if (cap->APPSMode == APPS_MODE2)
 		features |= STA_REC_AP_PS_FEATURE;
 

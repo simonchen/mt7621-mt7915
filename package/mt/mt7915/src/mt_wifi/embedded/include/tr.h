@@ -25,7 +25,7 @@
 #define VERIWAVE_2G_PKT_CNT_TH 20
 #define VERIWAVE_5G_PKT_CNT_TH 20
 #define BYTES_PER_SEC_TO_MBPS	17
-#define TX_MODE_RATIO_THRESHOLD	70
+#define TX_MODE_RATIO_THRESHOLD 70
 #define RX_MODE_RATIO_THRESHOLD	70
 #define STA_TP_IDLE_THRESHOLD 10
 #define STA_NUMBER_FOR_TRIGGER                1
@@ -57,15 +57,15 @@ struct tx_delay_control {
 	BOOLEAN que_agg_timer_running;
 	BOOLEAN que_agg_en;
 	BOOLEAN force_deq;
-#define TX_BATCH_CNT 4
+#define TX_BATCH_CNT 8 //4
 	UINT32 tx_process_batch_cnt;
 #define MIN_AGG_PKT_LEN 58
-#define MAX_AGG_PKT_LEN 135
-#define MAX_AGG_EN_TP 700
+#define MAX_AGG_PKT_LEN 256 //135 // e.g, ACK small packets // simonchen
+#define MAX_AGG_EN_TP 500 //700
 #define MIN_AGG_EN_TP 50
 	UINT32 min_pkt_len;
 	UINT32 max_pkt_len;
-#define QUE_AGG_TIMEOUT 4000
+#define QUE_AGG_TIMEOUT 1500 //4000
 	UINT32 que_agg_timeout_value;
 	BOOLEAN hw_enabled;
 	UINT32 min_tx_delay_en_tp;

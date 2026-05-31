@@ -1684,7 +1684,7 @@ INT	rtmp_set_channel(RTMP_ADAPTER *pAd, struct wifi_dev *wdev, UCHAR Channel)
 #endif
 				wdev->channel = OriChannel;
 				wdev_sync_prim_ch(wdev->sys_handle, wdev);
-#if (DFS_ZEROWAIT_DEFAULT_FLOW == 1)
+#if (defined(MT_DFS_SUPPORT) && (DFS_ZEROWAIT_DEFAULT_FLOW == 1)) // simonchen [Adding defined(MT_DFS_SUPPORT)]
 				/* if radar is detected during in-band ch switch, dev resets inband channel if new dfs ch is invalid */
 				if (pAd->CommonCfg.DfsParameter.bDedicatedZeroWaitDefault == 0)
 					return FALSE;
@@ -5607,6 +5607,13 @@ VOID RTMPIoctlGetMacTable(
 
 	/* for compatible with old API just do the printk to console*/
 	MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_TRACE, ("%s", msg));
+
+	// simonchen (instead of copying pMacTab)
+	wrq->u.data.length = strlen(msg) + 1;
+	if (copy_to_user(wrq->u.data.pointer, msg, wrq->u.data.length)) {
+		MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s: copy_to_user() text table fail\n", __func__));
+	}
+
 	os_free_mem(msg);
 LabelOK:
 
@@ -5724,7 +5731,7 @@ VOID RTMPIoctlGetRadioDynInfo(
 	struct wifi_dev *wdev;
 	UCHAR op_ht_bw;
 	UCHAR ht_gi;
-	UINT32 TotalLen = sizeof(CHAR) * (4096);
+	UINT32 TotalLen = sizeof(CHAR) * 4096;
 
 	os_alloc_mem(NULL, (UCHAR **)&msg, TotalLen);
 
@@ -8257,8 +8264,13 @@ INT	Show_STA_RAInfo_Proc(
 	return 0;
 }
 
-static INT dump_mac_table(RTMP_ADAPTER *pAd, UINT32 ent_type, BOOLEAN bReptCli)
+static INT dump_mac_table(RTMP_ADAPTER *pAd, UINT32 ent_type, BOOLEAN bReptCli, RTMP_IOCTL_INPUT_STRUCT *wrq)
 {
+#ifdef printk
+#undef printk
+#endif
+#define printk(...) do {} while(0)
+
 	INT i, j;
 	ULONG DataRate = 0;
 	ULONG DataRate_r = 0;
@@ -8291,6 +8303,20 @@ static INT dump_mac_table(RTMP_ADAPTER *pAd, UINT32 ent_type, BOOLEAN bReptCli)
 		{0,		""}
 	};
 
+	/* simonchen */
+	UINT32 TotalLen = sizeof(CHAR) * IW_PRIV_SIZE_MASK;
+	char* msg;
+        os_alloc_mem(NULL, (UCHAR **)&msg, TotalLen);
+
+        if (msg == NULL) {
+                MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s():Alloc memory failed\n", __func__));
+                return TRUE;
+        }
+
+        memset(msg, 0, TotalLen);
+        snprintf(msg, TotalLen, "%s", "\n");
+        /* simonchen */
+
 	printk("\n");
 #ifdef CONFIG_HOTSPOT_R2
 	MTWF_LOG(DBG_CAT_AP, DBG_SUBCAT_ALL, DBG_LVL_OFF,
@@ -8307,6 +8333,7 @@ static INT dump_mac_table(RTMP_ADAPTER *pAd, UINT32 ent_type, BOOLEAN bReptCli)
 #endif /* CONFIG_HOTSPOT_R2 */
 #ifdef MWDS
 	printk("%-8s", "MWDSCap");
+	snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s", "MWDSCap");
 #endif /* MWDS */
 
 	for (i = 0; VALID_UCAST_ENTRY_WCID(pAd, i); i++) {
@@ -8351,11 +8378,13 @@ static INT dump_mac_table(RTMP_ADAPTER *pAd, UINT32 ent_type, BOOLEAN bReptCli)
 		addht = wlan_operate_get_addht(pEntry->wdev);
 #ifdef DOT11_N_SUPPORT
 		printk("HT Operating Mode : %d\n", addht->AddHtInfo2.OperaionMode);
+		snprintf(msg + strlen(msg), TotalLen - strlen(msg), "HT Operating Mode : %d\n", addht->AddHtInfo2.OperaionMode);
 		printk("\n");
 #endif /* DOT11_N_SUPPORT */
 		DataRate = 0;
 		getRate(pEntry->HTPhyMode, &DataRate);
 		printk("%02X:%02X:%02X:%02X:%02X:%02X  ", PRINT_MAC(pEntry->Addr));
+		snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%02X:%02X:%02X:%02X:%02X:%02X  \n", PRINT_MAC(pEntry->Addr));
 
 		for (j = 0; type_str_map[j].type != 0; j++) {
 			if (type_str_map[j].type == pEntry->EntryType) {
@@ -8365,17 +8394,24 @@ static INT dump_mac_table(RTMP_ADAPTER *pAd, UINT32 ent_type, BOOLEAN bReptCli)
 			}
 		}
 		printk("%-5d", (int)pEntry->Aid);
+		snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%d\n", (int)pEntry->Aid);
 		printk("%-7d", (int)pEntry->wcid);
+		snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%d\n", (int)pEntry->wcid);
 		printk("%-4d", (int)pEntry->func_tb_idx);
+		snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%d\n", (int)pEntry->func_tb_idx);
 		printk("%-4d", (int)pEntry->PsMode);
+		snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%d\n", (int)pEntry->PsMode);
 		printk("%-4d", (int)CLIENT_STATUS_TEST_FLAG(pEntry, fCLIENT_STATUS_WMM_CAPABLE));
+		snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%d\n", (int)CLIENT_STATUS_TEST_FLAG(pEntry, fCLIENT_STATUS_WMM_CAPABLE));
 #ifdef DOT11_N_SUPPORT
 		printk("%-7d", (int)pEntry->MmpsMode);
+		snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%d\n", (int)pEntry->MmpsMode);
 #endif /* DOT11_N_SUPPORT */
 		rtmp_get_rssi(pAd, pEntry->wcid, rssi, 4);
 		snprintf(tmp_str, temp_str_len, "%d/%d/%d/%d",
 			rssi[0], rssi[1], rssi[2], rssi[3]);
 		printk("%-20s", tmp_str);
+		snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s\n", tmp_str);
 #ifdef RACTRL_FW_OFFLOAD_SUPPORT
 
 		if (cap->fgRateAdaptFWOffload == TRUE/*&& (pEntry->bAutoTxRateSwitch == TRUE)*/) {
@@ -8517,8 +8553,10 @@ static INT dump_mac_table(RTMP_ADAPTER *pAd, UINT32 ent_type, BOOLEAN bReptCli)
 
 			snprintf(tmp_str, temp_str_len, "%s/%s", get_phymode_str(phy_mode), get_phymode_str(phy_mode_r));
 			printk("%-12s", tmp_str);
+			snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s\n", tmp_str);
 			snprintf(tmp_str, temp_str_len, "%s/%s", get_bw_str(bw), get_bw_str(bw_r));
 			printk("%-9s", tmp_str);
+			snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s\n", tmp_str);
 #ifdef DOT11_VHT_AC
 
 			if (phy_mode >= MODE_VHT) {
@@ -8586,10 +8624,14 @@ static INT dump_mac_table(RTMP_ADAPTER *pAd, UINT32 ent_type, BOOLEAN bReptCli)
 					}
 
 			printk("%-14s", tmp_str);
+			snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s\n", tmp_str);
 			snprintf(tmp_str, temp_str_len, "%d/%d", sgi, sgi_r);
+
 			printk("%-7s", tmp_str);
+			snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s\n", tmp_str);
 			snprintf(tmp_str, temp_str_len, "%d/%d",  stbc, stbc_r);
 			printk("%-10s", tmp_str);
+			snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s\n", tmp_str);
 
 			if (phy_mode >= MODE_HE) {
 				get_rate_he((rate & 0xf), bw, nss, 0, &DataRate);
@@ -8614,7 +8656,9 @@ static INT dump_mac_table(RTMP_ADAPTER *pAd, UINT32 ent_type, BOOLEAN bReptCli)
 #endif /* RACTRL_FW_OFFLOAD_SUPPORT */
 		{
 			printk("%-12s", get_phymode_str(pEntry->HTPhyMode.field.MODE));
+			snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s\n", get_phymode_str(pEntry->HTPhyMode.field.MODE));
 			printk("%-9s", get_bw_str(pEntry->HTPhyMode.field.BW));
+			snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s\n", get_bw_str(pEntry->HTPhyMode.field.BW));
 #ifdef DOT11_VHT_AC
 
 			if (pEntry->HTPhyMode.field.MODE >= MODE_VHT)
@@ -8625,33 +8669,48 @@ static INT dump_mac_table(RTMP_ADAPTER *pAd, UINT32 ent_type, BOOLEAN bReptCli)
 				snprintf(tmp_str, temp_str_len, "%d", pEntry->HTPhyMode.field.MCS);
 
 			printk("%-12s", tmp_str);
+			snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s\n", tmp_str);
 			printk("%-9d", pEntry->HTPhyMode.field.ShortGI);
+			snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%d\n", pEntry->HTPhyMode.field.ShortGI);
 			printk("%-10d", pEntry->HTPhyMode.field.STBC);
+			snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%d\n", pEntry->HTPhyMode.field.STBC);
 		}
 
 		printk("%-7d", (int)(pEntry->StaIdleTimeout - pEntry->NoDataIdleCount));
+		snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%d\n", (int)(pEntry->StaIdleTimeout - pEntry->NoDataIdleCount));
 		snprintf(tmp_str, temp_str_len, "%d/%d", (int)DataRate, (int)DataRate_r);
 		printk("%-10s", tmp_str);
+		snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s\n", tmp_str);
 #ifdef CONFIG_HOTSPOT_R2
 		printk("%-7d", (int)pEntry->QosMapSupport);
+		snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%d\n", (int)pEntry->QosMapSupport);
 #endif
 		printk("%-10d, %d, %d%%\n", pEntry->DebugFIFOCount, pEntry->DebugTxCount,
 			   (pEntry->DebugTxCount) ? ((pEntry->DebugTxCount - pEntry->DebugFIFOCount) * 100 / pEntry->DebugTxCount) : 0);
+		//snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%d, %d, %d%%\n", pEntry->DebugFIFOCount, pEntry->DebugTxCount,
+                //           (pEntry->DebugTxCount) ? ((pEntry->DebugTxCount - pEntry->DebugFIFOCount) * 100 / pEntry->DebugTxCount) : 0);
 #ifdef CONFIG_HOTSPOT_R2
 
 		if (pEntry->QosMapSupport) {
 			int k = 0;
 
 			printk("DSCP Exception:\n");
+			snprintf(msg + strlen(msg), TotalLen - strlen(msg), "DSCP Exception:\n");
 
-			for (k = 0; k < pEntry->DscpExceptionCount / 2; k++)
+			for (k = 0; k < pEntry->DscpExceptionCount / 2; k++) {
 				printk("[Value: %4d] [UP: %4d]\n", pEntry->DscpException[k] & 0xff, (pEntry->DscpException[k] >> 8) & 0xff);
+				snprintf(msg + strlen(msg), TotalLen - strlen(msg), "[Value: %4d] [UP: %4d]\n", pEntry->DscpException[k] & 0xff, (pEntry->DscpException[k] >> 8) & 0xff);
+			}
 
 			printk("DSCP Range:\n");
+			snprintf(msg + strlen(msg), TotalLen - strlen(msg), "DSCP Range:\n");
 
-			for (k = 0; k < 8; k++)
+			for (k = 0; k < 8; k++) {
 				printk("[UP :%3d][Low Value: %4d] [High Value: %4d]\n", k, pEntry->DscpRange[k] & 0xff,
 					   (pEntry->DscpRange[k] >> 8) & 0xff);
+				snprintf(msg + strlen(msg), TotalLen - strlen(msg), "[UP :%3d][Low Value: %4d] [High Value: %4d]\n", k, pEntry->DscpRange[k] & 0xff,
+                                           (pEntry->DscpRange[k] >> 8) & 0xff);
+			}
 		}
 
 #endif
@@ -8659,22 +8718,32 @@ static INT dump_mac_table(RTMP_ADAPTER *pAd, UINT32 ent_type, BOOLEAN bReptCli)
 
 		if (IS_ENTRY_PEER_AP(pEntry)) {
 			if (pEntry->func_tb_idx < MAX_APCLI_NUM) {
-				if (pAd->StaCfg[pEntry->func_tb_idx].MlmeAux.bSupportMWDS)
+				if (pAd->StaCfg[pEntry->func_tb_idx].MlmeAux.bSupportMWDS) {
 					printk("%-8s", "YES");
-				else
+					snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s\n", "YES");
+				}
+				else {
 					printk("%-8s", "NO");
+					snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s\n", "NO");
+				}
 			}
 		} else {
-			if (pEntry->bSupportMWDS)
+			if (pEntry->bSupportMWDS) {
 				printk("%-8s", "YES");
-			else
+				snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s\n", "YES");
+			}
+			else {
 				printk("%-8s", "NO");
+				snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s\n", "NO");
+			}
 		}
 
 #endif /* MWDS */
 		/* +++Add by shiang for debug */
 		printk("%69s%-12s", "MaxCap:", get_phymode_str(pEntry->MaxHTPhyMode.field.MODE));
+		//snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s%s\n", "MaxCap:", get_phymode_str(pEntry->MaxHTPhyMode.field.MODE));
 		printk("%-9s", get_bw_str(pEntry->MaxHTPhyMode.field.BW));
+		//snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s\n", get_bw_str(pEntry->MaxHTPhyMode.field.BW));
 #ifdef DOT11_VHT_AC
 
 		if (pEntry->MaxHTPhyMode.field.MODE >= MODE_VHT)
@@ -8685,35 +8754,62 @@ static INT dump_mac_table(RTMP_ADAPTER *pAd, UINT32 ent_type, BOOLEAN bReptCli)
 			snprintf(tmp_str, temp_str_len, "%d", pEntry->MaxHTPhyMode.field.MCS);
 
 		printk("%-12s", tmp_str);
+		//snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s\n", tmp_str);
 		printk("%-9d", pEntry->MaxHTPhyMode.field.ShortGI);
+		//snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%d\n", pEntry->MaxHTPhyMode.field.ShortGI);
 		printk("%-10d", pEntry->MaxHTPhyMode.field.STBC);
+		//snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%d\n", pEntry->MaxHTPhyMode.field.STBC);
 		if (pEntry->MaxHTPhyMode.field.MODE >= MODE_HE)
 			get_rate_he((pEntry->MaxHTPhyMode.field.MCS & 0xf), pEntry->MaxHTPhyMode.field.BW,
 						((pEntry->MaxHTPhyMode.field.MCS >> 4) & 0x3) + 1, 0, &max_DataRate);
 		else
 			getRate(pEntry->MaxHTPhyMode, &max_DataRate);
 		printk("%-7s", "-");
+		//snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s\n", "-");
 		printk("%-10d", (int)max_DataRate);
+		//snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%d\n", (int)max_DataRate);
 #ifdef HTC_DECRYPT_IOT
 		printk("%20s%-10d", "HTC_ICVErr:", pEntry->HTC_ICVErrCnt);
+		//snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s%d\n", "HTC_ICVErr:", pEntry->HTC_ICVErrCnt);
 		printk("%20s%-10s", "HTC_AAD_OM_Force:", pEntry->HTC_AAD_OM_Force ? "YES" : "NO");
+		//snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s%s\n", "HTC_AAD_OM_Force:", pEntry->HTC_AAD_OM_Force ? "YES" : "NO");
 #endif /* HTC_DECRYPT_IOT */
 		printk("  wdev%d\n", (int)pEntry->wdev->wdev_idx);
+		//snprintf(msg + strlen(msg), TotalLen - strlen(msg), "wdev%d\n", (int)pEntry->wdev->wdev_idx);
 		/* ---Add by shiang for debug */
 		printk("\n");
+		snprintf(msg + strlen(msg), TotalLen - strlen(msg), "\n");
 	}
 
 	printk("sta_cnt=%d\n\r", sta_cnt);
+	snprintf(msg + strlen(msg), TotalLen - strlen(msg), "sta_cnt=%d\n", sta_cnt);
 	printk("apcli_cnt=%d\n\r", apcli_cnt);
+	snprintf(msg + strlen(msg), TotalLen - strlen(msg), "apcli_cnt=%d\n", apcli_cnt);
 	printk("rept_cnt=%d\n\r", rept_cnt);
+	snprintf(msg + strlen(msg), TotalLen - strlen(msg), "rept_cnt=%d\n", rept_cnt);
 #ifdef OUI_CHECK_SUPPORT
 	printk("oui_mgroup=%d\n\r", pAd->MacTab.oui_mgroup_cnt);
+	snprintf(msg + strlen(msg), TotalLen - strlen(msg), "oui_mgroup=%d\n", pAd->MacTab.oui_mgroup_cnt);
 	printk("repeater_wcid_error_cnt=%d\n\r", pAd->MacTab.repeater_wcid_error_cnt);
+	snprintf(msg + strlen(msg), TotalLen - strlen(msg), "repeater_wcid_error_cnt=%d\n", pAd->MacTab.repeater_wcid_error_cnt);
 	printk("repeater_bm_wcid_error_cnt=%d\n\r", pAd->MacTab.repeater_bm_wcid_error_cnt);
+	snprintf(msg + strlen(msg), TotalLen - strlen(msg), "repeater_bm_wcid_error_cnt=%d\n", pAd->MacTab.repeater_bm_wcid_error_cnt);
 #endif /*OUI_CHECK_SUPPORT*/
 #ifdef HTC_DECRYPT_IOT
 	printk("HTC_ICV_Err_TH=%d\n\r", pAd->HTC_ICV_Err_TH);
+	snprintf(msg + strlen(msg), TotalLen - strlen(msg), "HTC_ICV_Err_TH=%d\n", pAd->HTC_ICV_Err_TH);
 #endif /* HTC_DECRYPT_IOT */
+
+        // simonchen
+	if (wrq) {
+	        wrq->u.data.length = strlen(msg);
+        	if (copy_to_user(wrq->u.data.pointer, msg, wrq->u.data.length))
+                	MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: copy_to_user() fail\n", __func__));
+	}
+        os_free_mem(msg);
+
+#undef printk
+#define printk printk
 	return TRUE;
 }
 
@@ -8798,7 +8894,99 @@ INT Show_MacTable_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 	}
 
 	MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("Dump MacTable entries info, EntType=0x%x\n", ent_type));
-	return dump_mac_table(pAd, ent_type, FALSE);
+	return dump_mac_table(pAd, ent_type, FALSE, NULL);
+}
+
+INT Show_MacTable_Proc_hack(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+{
+	// simonchen (Copy from Show_MacTable_Proc and applying RTMP_IOCTL_INPUT_STRUCT)
+	PRTMP_VALUE v = (PRTMP_VALUE)arg;
+	RTMP_IOCTL_INPUT_STRUCT *wrq = v->wrq;
+
+	UINT32 ent_type = ENTRY_CLIENT;
+	INT ret = TRUE;
+	RTMP_STRING *rate_str = NULL;
+	RTMP_STRING *psm_str = NULL;
+	RTMP_STRING *bss_str = NULL;
+	CHAR *pch = NULL;
+	UINT32 check_aid = 0;
+	UINT32 check_bssidx = 0;
+
+	/* simonchen */
+	arg = v->arg; // hacking 
+	/* simonchen */
+
+	MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s(): arg=%s\n", __func__, (arg == NULL ? "" : arg)));
+
+	if (arg && strlen(arg)) {
+		if (rtstrcasecmp(arg, "sta") == TRUE)
+			ent_type = ENTRY_CLIENT;
+		else if (rtstrcasecmp(arg, "ap") == TRUE)
+			ent_type = ENTRY_AP;
+		else
+			ent_type = ENTRY_NONE;
+
+		rate_str = strstr(arg, "rate:");
+		psm_str = strstr(arg, "psm:");
+		bss_str = strstr(arg, "bss:");
+		if (rate_str) {
+			pch = strchr(rate_str, ':');
+			check_aid = (UINT32)os_str_tol(pch + 1, 0, 10);
+
+			MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_OFF,
+				("%s check_aid:%d RATE\n", __func__, check_aid));
+			if (check_aid)
+				ret = entrytb_traversal(pAd, traversal_func_dump_entry_rate_by_aid, (void *)&check_aid);
+
+			return ret;
+		}
+
+		if (psm_str) {
+			pch = strchr(psm_str, ':');
+			if (pch) {
+				check_aid = (UINT32)os_str_tol(pch + 1, 0, 10);
+
+				MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_OFF,
+				("%s check_aid:%d PSM\n", __func__, check_aid));
+
+				if (check_aid)
+					ret = entrytb_traversal(pAd, traversal_func_dump_entry_psm_by_aid, (void *)&check_aid);
+				return ret;
+			}
+			else {
+				MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_ERROR,
+					("%s psm_str parse fail\n", __func__));
+				return ret;
+			}
+		}
+
+		if (bss_str) {
+			entrytb_bss_idx_search_t bss_search;
+
+			os_zero_mem(&bss_search, sizeof(entrytb_bss_idx_search_t));
+			pch = strchr(bss_str, ':');
+
+			if (pch)
+				check_bssidx = (UINT32)os_str_tol(pch + 1, 0, 10);
+			else {
+				MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_ERROR,
+					("%s bss_str parse fail\n", __func__));
+				return ret;
+			}
+
+			bss_search.bss_idx = check_bssidx;
+			bss_search.need_print_field_name = 1;
+
+			MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_OFF,
+				("%s check_bssidx:%d associated entries\n", __func__, check_bssidx));
+			ret = entrytb_traversal(pAd, traversal_func_dump_entry_associated_to_bss, (void *)&bss_search);
+
+			return ret;
+		}
+	}
+
+	MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("Dump MacTable entries info, EntType=0x%x\n", ent_type));
+	return dump_mac_table(pAd, ent_type, FALSE, wrq);
 }
 
 INT Show_Mib_Info_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
@@ -15927,6 +16115,43 @@ INT show_timer_list(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 INT show_wtbl_state(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 {
 	HcWtblRecDump(pAd);
+	return TRUE;
+}
+
+INT reset_wtbl(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+{
+	struct wifi_dev *wdev;
+
+	if (!pAd) {
+		printk(KERN_ERR "reset_wtbl: pAd is NULL!\n");
+		return FALSE;
+	}
+
+	wdev = &pAd->ApCfg.MBSSID[MAIN_MBSSID].wdev;
+	if (!wdev) {
+		printk(KERN_ERR "reset_wtbl: wdev is NULL!\n");
+		return FALSE;
+	}
+
+	if (!pAd->net_dev) {
+		printk(KERN_ERR "reset_wtbl: pAd->net_dev is NULL!\n");
+		return FALSE;
+	}
+
+	printk(KERN_ERR "====> [iwpriv] Triggered MacTableResetWdev safely for wdev_idx(%d) <====\n", wdev->func_idx);
+
+	RTMP_OS_NETDEV_STOP_QUEUE(pAd->net_dev);
+	RTMP_SET_FLAG(pAd, fRTMP_ADAPTER_HALT_IN_PROGRESS);
+
+	MacTableResetWdev(pAd, wdev);
+
+	asic_init_wtbl(pAd, TRUE);
+
+	RTMP_CLEAR_FLAG(pAd, fRTMP_ADAPTER_HALT_IN_PROGRESS);
+	RTMP_OS_NETDEV_WAKE_QUEUE(pAd->net_dev);
+
+	printk(KERN_ERR "====> [iwpriv] MacTableResetWdev and asic_init_wtbl completed successfully <====\n");
+
 	return TRUE;
 }
 

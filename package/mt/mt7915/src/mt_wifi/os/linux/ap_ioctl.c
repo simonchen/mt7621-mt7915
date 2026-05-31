@@ -472,7 +472,7 @@ struct iw_priv_args ap_priv_tab[] = {
 	},
 	{
 		RTPRIV_IOCTL_SHOW,
-		IW_PRIV_TYPE_CHAR | 1024, 0,
+		IW_PRIV_TYPE_CHAR | 1024, IW_PRIV_TYPE_CHAR | IW_PRIV_SIZE_MASK, //0, // simonchen [Allowing to receive user data]
 		"show"
 	},
 	{

@@ -23,6 +23,7 @@
     ---------    ----------    ----------------------------------------------
  */
 
+#include <linux/of_reserved_mem.h>
 #include "rt_config.h"
 #include "l1profile.h"
 
@@ -1709,6 +1710,23 @@ VOID RTMPFreeAdapter(VOID *pAdSrc)
 	POS_COOKIE os_cookie;
 	struct _PCI_HIF_T *hif;
 	int i;
+
+	if (pAd && IS_MT7915(pAd)) {
+	    /* ========= CMA 释放路径 ========= */
+	    if (pAd && pAd->OS_Cookie) {
+		POS_COOKIE tmp_cookie = (POS_COOKIE)pAd->OS_Cookie;
+		
+		if (tmp_cookie->pci_dev) {
+		    struct device *dev = &tmp_cookie->pci_dev->dev;
+
+		    if (dev && dev->of_node) {
+			of_reserved_mem_device_release(dev);
+			printk(KERN_ERR "MT7915: CMA memory region released successfully.\n");
+		    }
+		}
+	    }
+	    /* ======================================================= */
+	}
 
 #ifdef MULTI_INF_SUPPORT
 	multi_inf_adapt_unreg((VOID *) pAd);

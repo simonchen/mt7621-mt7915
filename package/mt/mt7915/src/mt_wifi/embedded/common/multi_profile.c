@@ -2938,6 +2938,7 @@ INT multi_profile_merge_dscp_pri(
 		}
 	}
 
+end: // simonchen (end lost?)
 	if (tok_str)
 		os_free_mem(tok_str);
 	if (tmpbuf)
