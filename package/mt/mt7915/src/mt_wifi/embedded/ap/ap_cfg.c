@@ -511,6 +511,8 @@ INT Show_Diag_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
 INT show_timer_list(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
 INT show_wtbl_state(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
 INT reset_wtbl(RTMP_ADAPTER *pAd, RTMP_STRING *arg); // simonchen
+INT Set_RxSwRps_UL_Threshold_Proc(PRTMP_ADAPTER pAd, RTMP_STRING *arg); // simonchen
+INT Set_RxSwRps_DL_Threshold_Proc(PRTMP_ADAPTER pAd, RTMP_STRING *arg); // simonchen
 
 INT show_radio_info_proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
 
@@ -2605,6 +2607,8 @@ static struct {
 	{"vie",			Set_Customer_Vie_Proc},
 #endif /*CUSTOMER_VENDOR_IE_SUPPORT*/
 	{"reset_wtbl",	reset_wtbl},
+	{"UlRpsThd",    Set_RxSwRps_UL_Threshold_Proc},
+	{"DlRpsThd",    Set_RxSwRps_DL_Threshold_Proc},
 	{NULL,}
 };
 
@@ -2615,6 +2619,8 @@ static struct {
 #ifdef ACL_BLK_COUNT_SUPPORT
 	{"ACLRejectCount",				Show_ACLRejectCount_Proc},
 #endif/*ACL_BLK_COUNT_SUPPORT*/
+	{"DlRpsThd",			Show_DlRpsThd_Proc_hack}, // Newly added by simonchen
+	{"UlRpsThd",			Show_UlRpsThd_Proc_hack}, // Newly added by simonchen
 	{"stainfo",			Show_MacTable_Proc_hack},
 	{"partial_mib_info",		Show_Mib_Info_Proc},
 #ifdef TXRX_STAT_SUPPORT
@@ -3231,7 +3237,9 @@ INT RTMPAPPrivIoctlShow(
 		for (PRTMP_PRIVATE_SHOW_PROC = RTMP_PRIVATE_SHOW_SUPPORT_PROC; PRTMP_PRIVATE_SHOW_PROC->name;
 			 PRTMP_PRIVATE_SHOW_PROC++) {
 			if (rtstrcasecmp(this_char, PRTMP_PRIVATE_SHOW_PROC->name) == TRUE) {
-				if (rtstrcasecmp(this_char, "stainfo") == TRUE) { // simonchen [stainfo / hacking the string pointer]
+				if (rtstrcasecmp(this_char, "stainfo") == TRUE ||
+					rtstrcasecmp(this_char, "DlRpsThd") == TRUE || 
+					rtstrcasecmp(this_char, "UlRpsThd") == TRUE) { // simonchen [hacking the string pointer]
 					RTMP_VALUE v;
 					RTMP_STRING *tmp = value;
 					v.arg = tmp;
@@ -14293,9 +14301,10 @@ INT Show_CoreDump_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 		return TRUE;
 
 	NdisZeroMemory(msg, 4);
-
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	orig_fs = get_fs();
 	set_fs(KERNEL_DS);
+#endif
 	/* open file */
 	file_w = filp_open(fileName, O_WRONLY | O_CREAT, 0);
 
@@ -14318,6 +14327,9 @@ INT Show_CoreDump_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 			HW_IO_READ32(pAd->hdev_ctrl, addr, &macVal);
 			NdisCopyMemory(msg, &macVal, 4);
 			addr += 4;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
+                        kernel_write(file_w, msg, 4, &file_w->f_pos);
+#else
 #if (KERNEL_VERSION(4, 1, 0) > LINUX_VERSION_CODE)
 			if (file_w->f_op->write)
 				file_w->f_op->write(file_w, msg, 4, &file_w->f_pos);
@@ -14328,6 +14340,7 @@ INT Show_CoreDump_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 #else
 			__vfs_write(file_w, msg, 4, &file_w->f_pos);
 #endif
+#endif
 		}
 
 		filp_close(file_w, NULL);
@@ -14335,7 +14348,9 @@ INT Show_CoreDump_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 	}
 
 done:
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	set_fs(orig_fs);
+#endif
 	os_free_mem(msg);
 
 	return TRUE;
@@ -14375,8 +14390,10 @@ INT Show_SimSectionUlm_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 		endaddr = 0xE00D7FFF;
 	}
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	orig_fs = get_fs();
 	set_fs(KERNEL_DS);
+#endif
 	/* open file */
 	file_w = filp_open(fileName, O_WRONLY | O_CREAT, 0);
 
@@ -14400,6 +14417,9 @@ INT Show_SimSectionUlm_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 			HW_IO_READ32(pAd->hdev_ctrl, addr, &macVal);
 
 			addr += 4;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
+		        kernel_write(file_w, (UCHAR *)&macVal, 4, &file_w->f_pos);
+#else
 #if (KERNEL_VERSION(4, 1, 0) > LINUX_VERSION_CODE)
 			if (file_w->f_op->write)
 				file_w->f_op->write(file_w, (UCHAR *)&macVal, 4, &file_w->f_pos);
@@ -14410,6 +14430,7 @@ INT Show_SimSectionUlm_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 #else
 			__vfs_write(file_w, (UCHAR *)&macVal, 4, &file_w->f_pos);
 #endif
+#endif
 		}
 
 		filp_close(file_w, NULL);
@@ -14417,8 +14438,9 @@ INT Show_SimSectionUlm_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 	}
 
 done:
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	set_fs(orig_fs);
-
+#endif
 	return TRUE;
 }
 
@@ -24869,3 +24891,44 @@ INT	show_resume_info(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 }
 #endif
 
+INT Set_RxSwRps_UL_Threshold_Proc(PRTMP_ADAPTER pAd, RTMP_STRING *arg)
+{
+    UINT32 threshold;
+    struct _RTMP_CHIP_CAP *cap = hc_get_chip_cap(pAd->hdev_ctrl);
+
+    if (arg == NULL || strlen(arg) == 0)
+        return FALSE;
+
+    threshold = (UINT32) os_str_tol(arg, 0, 10);
+
+    if (threshold < 100 || threshold > 2000) {
+        printk("==========>MT7915: Error: UL threshold %u out of range (100-2000 Mbps)\n", threshold);
+        return FALSE;
+    }
+
+    cap->RxSwRpsTpThreshold = threshold;
+    printk("==========>MT7915: Success: Set UL RPS Threshold to %u Mbps\n", cap->RxSwRpsTpThreshold);
+    
+    return TRUE;
+}
+
+INT Set_RxSwRps_DL_Threshold_Proc(PRTMP_ADAPTER pAd, RTMP_STRING *arg)
+{
+    UINT32 threshold;
+    struct _RTMP_CHIP_CAP *cap = hc_get_chip_cap(pAd->hdev_ctrl);
+
+    if (arg == NULL || strlen(arg) == 0)
+        return FALSE;
+
+    threshold = (UINT32) os_str_tol(arg, 0, 10);
+
+    if (threshold < 100 || threshold > 2000) {
+        printk("==========>MT7915: Error: DL threshold %u out of range (100-2000 Mbps)\n", threshold);
+        return FALSE;
+    }
+
+    cap->sw_rps_tp_thd_dl = threshold;
+    printk("==========>MT7915: Success: Set DL RPS Threshold to %u Mbps\n", cap->sw_rps_tp_thd_dl);
+    
+    return TRUE;
+}

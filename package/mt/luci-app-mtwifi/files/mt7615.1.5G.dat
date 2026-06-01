@@ -435,3 +435,5 @@ WPAPSK8=
 WPAPSK9=
 WscConfMode=0
 WscConfStatus=2
+UlRpsThd=300
+DlRpsThd=100

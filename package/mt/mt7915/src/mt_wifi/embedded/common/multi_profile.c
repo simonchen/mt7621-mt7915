@@ -368,6 +368,42 @@ end:
 	return ret;
 }
 
+// simonchen
+static INT multi_profile_merge_single_side(
+	struct _RTMP_ADAPTER *ad,
+	UCHAR *parm,
+	UCHAR *buf1,
+	UCHAR *buf2,
+	UCHAR *final)
+{
+	CHAR *tmpbuf = NULL;
+	INT ret = NDIS_STATUS_SUCCESS;
+
+	if (!buf2 || !final)
+		return NDIS_STATUS_FAILURE;
+
+	os_alloc_mem_suspend(ad, (UCHAR **)&tmpbuf, TEMP_STR_SIZE);
+	if (!tmpbuf) {
+		MTWF_LOG(DBG_CAT_ALL, DBG_SUBCAT_ALL, DBG_LVL_ERROR,
+			("%s: Allocate memory failed!\n", __func__));
+		return NDIS_STATUS_FAILURE;
+	}
+	os_zero_mem(tmpbuf, TEMP_STR_SIZE);
+
+	if (RTMPGetKeyParameter(parm, tmpbuf, TEMP_STR_SIZE, buf2, TRUE) == TRUE) {
+		RTMPSetKeyParameter(parm, tmpbuf, TEMP_STR_SIZE, final, TRUE);
+	} else {
+		if (buf1 && (RTMPGetKeyParameter(parm, tmpbuf, TEMP_STR_SIZE, buf1, TRUE) == TRUE)) {
+			RTMPSetKeyParameter(parm, tmpbuf, TEMP_STR_SIZE, final, TRUE);
+		}
+	}
+
+	if (tmpbuf)
+		os_free_mem(tmpbuf);
+
+	return ret;
+}
+
 #ifdef APCLI_SUPPORT
 #if 0
 /* without space trim */
@@ -3181,6 +3217,10 @@ static INT multi_profile_merge(
 #endif /* ANTENNA_CONTROL_SUPPORT */
 	if (multi_profile_merge_quick_channel_switch(data, buf1, buf2, final) != NDIS_STATUS_SUCCESS)
 		return retval;
+
+	// simonchen
+	multi_profile_merge_single_side(ad, "UlRpsThd", buf1, buf2, final);
+	multi_profile_merge_single_side(ad, "DlRpsThd", buf1, buf2, final);
 
 	data->enable = TRUE;
 	/*adjust specific device name*/

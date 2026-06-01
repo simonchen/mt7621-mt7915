@@ -8809,7 +8809,11 @@ static INT dump_mac_table(RTMP_ADAPTER *pAd, UINT32 ent_type, BOOLEAN bReptCli, 
         os_free_mem(msg);
 
 #undef printk
-#define printk printk
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0)
+    #define printk _printk
+#else
+    #define printk printk
+#endif
 	return TRUE;
 }
 
@@ -8896,6 +8900,71 @@ INT Show_MacTable_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 	MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("Dump MacTable entries info, EntType=0x%x\n", ent_type));
 	return dump_mac_table(pAd, ent_type, FALSE, NULL);
 }
+
+INT Show_DlRpsThd_Proc_hack(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+{
+        PRTMP_VALUE v = (PRTMP_VALUE)arg;
+        RTMP_IOCTL_INPUT_STRUCT *wrq = v->wrq;
+	INT ret = TRUE;
+	arg = v->arg; // hacking
+
+        UINT32 TotalLen = sizeof(CHAR) * 32;
+        char* msg;
+        os_alloc_mem(NULL, (UCHAR **)&msg, TotalLen);
+
+        if (msg == NULL) {
+                MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s():Alloc memory failed\n", __func__));
+                return TRUE;
+        }
+
+        memset(msg, 0, TotalLen);
+        snprintf(msg, TotalLen, "%s", "\n");
+
+	struct _RTMP_CHIP_CAP *cap = hc_get_chip_cap(pAd->hdev_ctrl);
+	snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%u", cap->sw_rps_tp_thd_dl);
+
+        if (wrq) {
+                wrq->u.data.length = strlen(msg);
+                if (copy_to_user(wrq->u.data.pointer, msg, wrq->u.data.length))
+                        MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: copy_to_user() fail\n", __func__));
+        }
+        os_free_mem(msg);
+
+	return ret;
+}
+
+INT Show_UlRpsThd_Proc_hack(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+{
+        PRTMP_VALUE v = (PRTMP_VALUE)arg;
+        RTMP_IOCTL_INPUT_STRUCT *wrq = v->wrq;
+        INT ret = TRUE;
+        arg = v->arg; // hacking
+
+        UINT32 TotalLen = sizeof(CHAR) * 32;
+        char* msg;
+        os_alloc_mem(NULL, (UCHAR **)&msg, TotalLen);
+
+        if (msg == NULL) {
+                MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s():Alloc memory failed\n", __func__));
+                return TRUE;
+        }
+
+        memset(msg, 0, TotalLen);
+        snprintf(msg, TotalLen, "%s", "\n");
+
+        struct _RTMP_CHIP_CAP *cap = hc_get_chip_cap(pAd->hdev_ctrl);
+        snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%u", cap->RxSwRpsTpThreshold);
+
+        if (wrq) {
+                wrq->u.data.length = strlen(msg);
+                if (copy_to_user(wrq->u.data.pointer, msg, wrq->u.data.length))
+                        MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: copy_to_user() fail\n", __func__));
+        }
+        os_free_mem(msg);
+
+        return ret;
+}
+
 
 INT Show_MacTable_Proc_hack(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 {

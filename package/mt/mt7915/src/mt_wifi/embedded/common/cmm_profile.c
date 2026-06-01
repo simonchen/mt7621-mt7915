@@ -5105,6 +5105,30 @@ NDIS_STATUS	RTMPSetProfileParameters(
 #endif
 
 	do {
+		if (RTMPGetKeyParameter("UlRpsThd", tmpbuf, 25, pBuffer, TRUE)) {
+			UINT32 tmp_val = (UINT32)os_str_tol(tmpbuf, 0, 10);
+			if (tmp_val >= 100 && tmp_val <= 2000) {
+				cap->RxSwRpsTpThreshold = tmp_val;
+				MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_OFF,
+						("==========>MT7915: Loaded Profile UlRpsThd = %u Mbps\n", cap->RxSwRpsTpThreshold));
+			} else {
+				MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_OFF, 
+						("==========>MT7915: Profile UlRpsThd %u out of range (100-2000), bypass\n", tmp_val));
+			}
+		}
+
+		if (RTMPGetKeyParameter("DlRpsThd", tmpbuf, 25, pBuffer, TRUE)) {
+			UINT32 tmp_val = (UINT32)os_str_tol(tmpbuf, 0, 10);
+			if (tmp_val >= 100 && tmp_val <= 2000) {
+				cap->sw_rps_tp_thd_dl = tmp_val;
+				MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_OFF,
+						("==========>MT7915: Loaded Profile DlRpsThd = %u Mbps\n", cap->sw_rps_tp_thd_dl));
+			} else {
+				MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_OFF,
+						("==========>MT7915: Profile DlRpsThd %u out of range (100-2000), bypass\n", tmp_val));
+			}
+		}
+
 		/* wifi certification */
 		if (RTMPGetKeyParameter("WifiCert", tmpbuf, 25, pBuffer, TRUE)) {
 			UCHAR wifi_cert = os_str_tol(tmpbuf, 0, 10);
