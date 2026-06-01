@@ -1515,6 +1515,7 @@ static PNDIS_PACKET pci_get_pkt_dynamic_page_ddone(
 	UINT32 *pRxPending,
 	UCHAR resource_idx)
 {
+	static UINT fake_hash_roller = 0;
 	RXD_STRUC *pRxD;
 #ifdef RT_BIG_ENDIAN
 	RXD_STRUC *pDestRxD;
@@ -1624,7 +1625,8 @@ static PNDIS_PACKET pci_get_pkt_dynamic_page_ddone(
 				}
 					RTPKT_TO_OSPKT(pRxPacket)->hash = wcid;
 			} else
-					RTPKT_TO_OSPKT(pRxPacket)->hash = smp_processor_id()+1;
+					//RTPKT_TO_OSPKT(pRxPacket)->hash = smp_processor_id()+1;
+					skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 2), PKT_HASH_TYPE_L3);
 			}
 
 #endif
