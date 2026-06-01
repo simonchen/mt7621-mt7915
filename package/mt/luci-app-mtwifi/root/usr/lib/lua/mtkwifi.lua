@@ -829,28 +829,16 @@ function mtkwifi.parse_mac(str)
 end
 
 function mtkwifi.scan_ap_req(vifname)
-    ssid = nil
-    local util = require "luci.util"
-    local devs = mtkwifi.get_all_devs()
-    for idx, dev in ipairs(devs) do
-        if dev[vifname] and dev[vifname].ssid then
-            ssid = dev[vifname].ssid
-            -- force disconnect root AP
-            os.execute("iwpriv "..vifname.." set ApcliSsid=")
-            break
-        end
-    end
+    -- force disconnect root AP (if had)
+    os.execute("iwpriv "..vifname.." set ApcliSsid=")
 
     os.execute("iwpriv "..vifname.." set ClearSiteSurvey=1")
     os.execute("iwpriv "..vifname.." set SiteSurvey=")
 
-    -- restore apcli(x)0 ssid 
-    if ssid ~= nil then
-        -- soft-restart wifi, may reconnect root AP 
-        os.execute("/etc/init.d/apcli.sh start")
-    end
+    -- soft-restart wifi, may reconnect root AP 
+    os.execute("/etc/init.d/apcli.sh start")
 
-    return vifname.." ssid: "..(ssid or "")
+    return "ok"
 end
 
 function mtkwifi.scan_ap(vifname)
