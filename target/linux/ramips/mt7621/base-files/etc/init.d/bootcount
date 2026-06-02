@@ -5,6 +5,7 @@ START=99
 boot() {
         /etc/init.d/apcli.sh start
         mtkwifi reload
+	mtkwifi apcli_auto_connect
 
 	case $(board_name) in
 	alfa-network,quad-e4g)

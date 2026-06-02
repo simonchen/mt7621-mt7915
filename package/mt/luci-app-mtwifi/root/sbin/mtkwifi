@@ -9,7 +9,7 @@ local mtkwifi = require("mtkwifi")
 local nixio = require("nixio")
 
 function usage()
-	print("wifi <up|down|reset|reload|status> [devname]")
+	print("wifi <up|down|reset|reload|status|apcli_auto_connect> [devname]")
 end
 
 
@@ -39,6 +39,22 @@ function wifi_common_down(devname)
 			os.execute("ifconfig "..vif.." down")
 		end
 	end
+end
+
+function apcli_auto_connect(devname)
+        nixio.syslog("debug", "wifi_auto_connect "..tostring(devname))
+        for _,vif in ipairs(string.split(mtkwifi.read_pipe("ls /sys/class/net"), "\n"))
+        do
+                if string.match(vif, "apcli%d+")
+                or string.match(vif, "apclix%d+") then
+                        -- force disconnect root AP (if had)
+                        os.execute("iwpriv "..vif.." set ApcliSsid=")
+
+                        os.execute("iwpriv "..vif.." set ClearSiteSurvey=1")
+			os.execute("iwpriv "..vif.." set SiteSurvey=")
+		end
+	end
+	os.execute("/etc/init.d/apcli.sh start")
 end
 
 function wifi_common_reload(devname)
@@ -181,6 +197,8 @@ or cmd == "reset" then
 elseif cmd == "reload_legacy" then
 	nixio.syslog("info", "legacy command "..cmd)
 	wifi("up", dev)
+elseif cmd == "apcli_auto_connect" then
+	apcli_auto_connect(dev)
 else
 	usage()
 end
