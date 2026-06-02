@@ -2843,7 +2843,7 @@ static BOOLEAN pci_rx_dma_done_handle(RTMP_ADAPTER *pAd, UINT8 resource_idx)
 		if (!bReschedule || !bLastPktExist) {
 			rx_ring->max_rx_process_cnt = s_max_rx_process_cnt;
 		} else {
-			rx_ring->max_rx_process_cnt = s_max_rx_process_cnt / 2;
+			rx_ring->max_rx_process_cnt = s_max_rx_process_cnt >> 1;
 		}
 	}
 
