@@ -1626,7 +1626,7 @@ static PNDIS_PACKET pci_get_pkt_dynamic_page_ddone(
 					RTPKT_TO_OSPKT(pRxPacket)->hash = wcid;
 			} else
 					//RTPKT_TO_OSPKT(pRxPacket)->hash = smp_processor_id()+1;
-					skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 2), PKT_HASH_TYPE_L3);
+					skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 2), PKT_HASH_TYPE_L4);
 			}
 
 #endif
@@ -2788,6 +2788,12 @@ static BOOLEAN pci_rx_dma_done_handle(RTMP_ADAPTER *pAd, UINT8 resource_idx)
 	NDIS_SPIN_LOCK *lock = &rx_ring->ring_lock;
 	RX_BLK rx_blk, *p_rx_blk = NULL;
 	UINT16 max_rx_process_cnt = rx_ring->max_rx_process_cnt;
+	static UINT16 s_max_rx_process_cnt = 0;
+	BOOLEAN bLastPktExist = TRUE;
+
+	if (s_max_rx_process_cnt == 0 && rx_ring->ring_attr == HIF_RX_DATA) {
+		s_max_rx_process_cnt = max_rx_process_cnt;
+	}
 
 #ifdef CONFIG_TP_DBG
 	struct tp_debug *tp_dbg = &pAd->tr_ctl.tp_dbg;
@@ -2820,6 +2826,7 @@ static BOOLEAN pci_rx_dma_done_handle(RTMP_ADAPTER *pAd, UINT8 resource_idx)
 			p_rx_blk = &rx_blk;
 			asic_rx_pkt_process(pAd, resource_idx, p_rx_blk, pkt);
 		} else {
+			bLastPktExist = FALSE;
 			break;
 		}
 	}
@@ -2830,6 +2837,14 @@ static BOOLEAN pci_rx_dma_done_handle(RTMP_ADAPTER *pAd, UINT8 resource_idx)
 #ifdef CONFIG_TP_DBG
 		tp_dbg->IoWriteRx++;
 #endif
+	}
+
+	if (rx_ring->ring_attr == HIF_RX_DATA) {
+		if (!bReschedule || !bLastPktExist) {
+			rx_ring->max_rx_process_cnt = s_max_rx_process_cnt;
+		} else {
+			rx_ring->max_rx_process_cnt = s_max_rx_process_cnt / 2;
+		}
 	}
 
 	RTMP_SEM_UNLOCK(lock);
