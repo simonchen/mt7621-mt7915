@@ -1509,13 +1509,13 @@ done:
 	return skb_pkt;
 }
 
+UINT fake_hash_roller = 0;
 static PNDIS_PACKET pci_get_pkt_dynamic_page_ddone(
 	struct _RTMP_ADAPTER *pAd,
 	BOOLEAN *pbReschedule,
 	UINT32 *pRxPending,
 	UCHAR resource_idx)
 {
-	static UINT fake_hash_roller = 0;
 	RXD_STRUC *pRxD;
 #ifdef RT_BIG_ENDIAN
 	RXD_STRUC *pDestRxD;
@@ -1610,7 +1610,7 @@ static PNDIS_PACKET pci_get_pkt_dynamic_page_ddone(
 			build_rx_pkt_skb(&pRxPacket, (VOID *)pRxCell->pNdisPacket,
 									build_skb_len, gather_size);
 #ifdef RX_RPS_SUPPORT
-			if (pAd->ixia_mode_ctl.kernel_rps_en) {
+			if (1) {//pAd->ixia_mode_ctl.kernel_rps_en) {
 			if (pChipCap->rx_qm_en) {
 				UINT16 wcid = 0;
 					struct rxd_grp_0 *rxd_grp0 =
@@ -1626,7 +1626,8 @@ static PNDIS_PACKET pci_get_pkt_dynamic_page_ddone(
 					RTPKT_TO_OSPKT(pRxPacket)->hash = wcid;
 			} else
 					//RTPKT_TO_OSPKT(pRxPacket)->hash = smp_processor_id()+1;
-					skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 2), PKT_HASH_TYPE_L4);
+					// simonchen (switch cpu by every 512 pkts)
+					skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 8 & 1) << 31, PKT_HASH_TYPE_L4);
 			}
 
 #endif
@@ -1824,6 +1825,11 @@ static PNDIS_PACKET pci_get_pkt_dynamic_page_io(
 				bReschedule = TRUE;
 			}
 		}
+#ifdef RX_RPS_SUPPORT
+		if (pRxPacket) { // simonchen
+			skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 8 & 1) << 31, PKT_HASH_TYPE_L4);
+		}
+#endif
 	} else {
 		bReschedule = TRUE;
 		goto done;
@@ -1960,6 +1966,11 @@ static PNDIS_PACKET pci_get_pkt_dynamic_slab_ddone(
 				bReschedule = TRUE;
 			}
 		}
+#ifdef RX_RPS_SUPPORT
+                if (pRxPacket) { // simonchen
+                        skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 8 & 1) << 31, PKT_HASH_TYPE_L4);
+                }
+#endif
 	} else {
 		bReschedule = TRUE;
 		goto done;
@@ -2118,6 +2129,11 @@ static PNDIS_PACKET pci_get_pkt_dynamic_slab_io(
 				bReschedule = TRUE;
 			}
 		}
+#ifdef RX_RPS_SUPPORT
+                if (pRxPacket) { // simonchen
+                        skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 8 & 1) << 31, PKT_HASH_TYPE_L4);
+                }
+#endif
 	} else {
 		bReschedule = TRUE;
 		goto done;

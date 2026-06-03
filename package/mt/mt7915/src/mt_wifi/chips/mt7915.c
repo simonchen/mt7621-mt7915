@@ -333,7 +333,7 @@ const struct hif_pci_rx_ring_desc rx_ring_layout[] = {
 	 .ring_size = 1024,
 	 .ring_attr = HIF_RX_EVENT,
 	 .event_type = HOST_MSDU_ID_RPT,
-	 .delay_int_en = TRUE,
+	 .delay_int_en = FALSE,//TRUE,
 	 .dl_dly_ctl_tbl = dly_ctl_dl_tbl_hostdma1_r1,
 	 .dl_dly_ctl_tbl_size = sizeof(dly_ctl_dl_tbl_hostdma1_r1)
 							/ sizeof(dly_ctl_dl_tbl_hostdma1_r1[0]),
@@ -350,7 +350,7 @@ const struct hif_pci_rx_ring_desc rx_ring_layout[] = {
 	 .hw_int_mask = MT_INT_DMA1_R2_DONE,
 	 .ring_size = 512,
 	 .ring_attr = HIF_RX_EVENT,
-	 .delay_int_en = TRUE,
+	 .delay_int_en = FALSE,//TRUE,
 	 .dl_dly_ctl_tbl = dly_ctl_dl_tbl_hostdma1_r2,
 	 .dl_dly_ctl_tbl_size = sizeof(dly_ctl_dl_tbl_hostdma1_r2)
 							/ sizeof(dly_ctl_dl_tbl_hostdma1_r2[0]),
