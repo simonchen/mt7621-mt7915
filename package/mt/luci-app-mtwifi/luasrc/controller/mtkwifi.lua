@@ -879,6 +879,8 @@ function apcli_connect(dev, vif)
 		os.execute("iwpriv "..vifname.." set ApCliWPAPSK="..cfgs.ApCliWPAPSK)
 	end
 	os.execute("iwpriv "..vifname.." set ApCliSsid=\""..cfgs.ApCliSsid.."\"")
+	-- auto-connect // simonchen
+	os.execute("iwpriv "..vifname.." set ApCliAutoConnect=3")
 	os.execute("iwpriv "..vifname.." set ApCliEnable=1")
 	__mtkwifi_save_apcli(devname)
 	os.execute("sleep 5")
