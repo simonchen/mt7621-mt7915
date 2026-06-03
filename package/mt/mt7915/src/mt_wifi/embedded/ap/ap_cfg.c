@@ -2619,6 +2619,7 @@ static struct {
 #ifdef ACL_BLK_COUNT_SUPPORT
 	{"ACLRejectCount",				Show_ACLRejectCount_Proc},
 #endif/*ACL_BLK_COUNT_SUPPORT*/
+	{"fake_hash_roller",		Show_FakeHashRoller_Proc_hack},
 	{"DlRpsThd",			Show_DlRpsThd_Proc_hack}, // Newly added by simonchen
 	{"UlRpsThd",			Show_UlRpsThd_Proc_hack}, // Newly added by simonchen
 	{"stainfo",			Show_MacTable_Proc_hack},
@@ -3239,7 +3240,8 @@ INT RTMPAPPrivIoctlShow(
 			if (rtstrcasecmp(this_char, PRTMP_PRIVATE_SHOW_PROC->name) == TRUE) {
 				if (rtstrcasecmp(this_char, "stainfo") == TRUE ||
 					rtstrcasecmp(this_char, "DlRpsThd") == TRUE || 
-					rtstrcasecmp(this_char, "UlRpsThd") == TRUE) { // simonchen [hacking the string pointer]
+					rtstrcasecmp(this_char, "UlRpsThd") == TRUE ||
+					rtstrcasecmp(this_char, "fake_hash_roller") == TRUE) { // simonchen [hacking the string pointer]
 					RTMP_VALUE v;
 					RTMP_STRING *tmp = value;
 					v.arg = tmp;
