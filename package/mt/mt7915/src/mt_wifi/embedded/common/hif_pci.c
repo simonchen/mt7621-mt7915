@@ -1627,7 +1627,7 @@ static PNDIS_PACKET pci_get_pkt_dynamic_page_ddone(
 			} else
 					//RTPKT_TO_OSPKT(pRxPacket)->hash = smp_processor_id()+1;
 					// simonchen (switch cpu by every 512 pkts)
-					skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 8 & 1) << 31, PKT_HASH_TYPE_L4);
+					skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 10 & 1) << 31, PKT_HASH_TYPE_L4);
 			}
 
 #endif
@@ -1968,7 +1968,7 @@ static PNDIS_PACKET pci_get_pkt_dynamic_slab_ddone(
 		}
 #ifdef RX_RPS_SUPPORT
                 if (pRxPacket) { // simonchen
-                        skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 8 & 1) << 31, PKT_HASH_TYPE_L4);
+                        skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 6 & 1) << 31, PKT_HASH_TYPE_L4);
                 }
 #endif
 	} else {
@@ -2131,7 +2131,7 @@ static PNDIS_PACKET pci_get_pkt_dynamic_slab_io(
 		}
 #ifdef RX_RPS_SUPPORT
                 if (pRxPacket) { // simonchen
-                        skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 8 & 1) << 31, PKT_HASH_TYPE_L4);
+                        skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 6 & 1) << 31, PKT_HASH_TYPE_L4);
                 }
 #endif
 	} else {
@@ -2854,7 +2854,7 @@ static BOOLEAN pci_rx_dma_done_handle(RTMP_ADAPTER *pAd, UINT8 resource_idx)
 		tp_dbg->IoWriteRx++;
 #endif
 	}
-
+/*
 	if (rx_ring->ring_attr == HIF_RX_DATA) {
 		if (!bReschedule || !bLastPktExist) {
 			rx_ring->max_rx_process_cnt = s_max_rx_process_cnt;
@@ -2862,7 +2862,7 @@ static BOOLEAN pci_rx_dma_done_handle(RTMP_ADAPTER *pAd, UINT8 resource_idx)
 			rx_ring->max_rx_process_cnt = s_max_rx_process_cnt >> 1;
 		}
 	}
-
+*/
 	RTMP_SEM_UNLOCK(lock);
 
 #ifdef CONFIG_TP_DBG
@@ -4417,7 +4417,7 @@ static NDIS_STATUS pci_init_txrx_ring_mem(void *hdev_ctrl)
 
 			tx_ring->tx_ring_state = TX_RING_HIGH;
 			tx_ring->tx_ring_low_water_mark = 5;
-			tx_ring->tx_ring_high_water_mark = tx_ring->tx_ring_low_water_mark + 10;
+			tx_ring->tx_ring_high_water_mark = tx_ring->tx_ring_low_water_mark + 50; // simonchen
 			tx_ring->tx_ring_full_cnt = 0;
 			MTWF_LOG(DBG_CAT_HIF, CATHIF_PCI, DBG_LVL_ERROR,
 				 ("TxRing[%d]: attr:%d, total %d entry initialized\n", num, tx_ring->ring_attr, index));
