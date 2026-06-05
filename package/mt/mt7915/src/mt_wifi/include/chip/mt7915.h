@@ -4,11 +4,11 @@
 struct _RTMP_ADAPTER;
 struct _RTMP_CHIP_DBG;
 
-#define MT7915_BIN_FILE_NAME_E1 "WIFI_RAM_CODE_MT7915.bin"
-#define MT7915_BIN_FILE_NAME_E2 "WIFI_RAM_CODE_MT7915_E2.bin"
-#define MT7915_WA_BIN_FILE_NAME "7915_WACPU_RAM_CODE_release.bin"
-#define MT7915_ROM_PATCH_BIN_FILE_NAME_E1 "mt7915_patch_e1_hdr.bin"
-#define MT7915_ROM_PATCH_BIN_FILE_NAME_E2 "mt7915_patch_e2_hdr.bin"
+#define MT7915_BIN_FILE_NAME_E1 "mediatek/WIFI_RAM_CODE_MT7915.bin"
+#define MT7915_BIN_FILE_NAME_E2 "mediatek/WIFI_RAM_CODE_MT7915_E2.bin"
+#define MT7915_WA_BIN_FILE_NAME "mediatek/7915_WACPU_RAM_CODE_release.bin"
+#define MT7915_ROM_PATCH_BIN_FILE_NAME_E1 "mediatek/mt7915_patch_e1_hdr.bin"
+#define MT7915_ROM_PATCH_BIN_FILE_NAME_E2 "mediatek/mt7915_patch_e2_hdr.bin"
 
 #define MT7915_ROM_PATCH_START_ADDRESS	0x00200000
 

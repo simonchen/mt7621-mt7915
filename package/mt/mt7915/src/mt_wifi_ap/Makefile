@@ -1,5 +1,6 @@
 ifeq ($(CONFIG_SUPPORT_OPENWRT),y)
 WIFI_DRV_PATH := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/..
+$(warning [MTK_DEBUG] WIFI_DRV_PATH is set to: $(WIFI_DRV_PATH))
 else
 ifeq ($(CONFIG_DEFAULTS_KERNEL_4_4),y)
 WIFI_DRV_PATH = drivers/net/wireless/mediatek
@@ -7,6 +8,11 @@ else
 WIFI_DRV_PATH = drivers/net/wireless
 endif
 endif
+
+#ifeq ($(wildcard $(WIFI_DRV_PATH)/mt_wifi/Makefile),)
+#  WIFI_DRV_PATH := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/..
+#  CONFIG_LINUX_6_18 := y
+#endif
 
 EXTRA_CFLAGS = -I$(WIFI_DRV_PATH)/mt_wifi/include \
 				-I$(WIFI_DRV_PATH)/mt_wifi/embedded/include \
@@ -37,6 +43,7 @@ endif
 SRC_DIR = ../mt_wifi
 SRC_EMBEDDED_DIR = ../mt_wifi/embedded
 SERV_DIR = ../wlan_service
+
 ifeq ($(CONFIG_SUPPORT_OPENWRT),y)
 EXTRA_CFLAGS += -DCONFIG_SUPPORT_OPENWRT
 
@@ -1108,6 +1115,9 @@ EXTRA_CFLAGS += -DDBDC_MODE
 endif
 # simonchen 20260526 [REMOVE -DCUSTOMER_VENDOR_IE_SUPPORT]
 #EXTRA_CFLAGS += -DCUSTOMER_VENDOR_IE_SUPPORT
+# simonchen NEW FIRMWARE // 2022
+#EXTRA_CFLAGS += -DNEW_FIRMWARE_2022
+EXTRA_CFLAGS += -DLOAD_BIN_FIRMWARE
 ifeq ($(CONFIG_CHIP_MT7615E),y)
 EXTRA_CFLAGS += -DMT7615 -DMT_BBP -DMT_RF -DRTMP_RF_RW_SUPPORT -DMT_MAC -DRTMP_MAC_PCI -DRTMP_PCI_SUPPORT
 EXTRA_CFLAGS += -DMCS_LUT_SUPPORT -DA_BAND_SUPPORT

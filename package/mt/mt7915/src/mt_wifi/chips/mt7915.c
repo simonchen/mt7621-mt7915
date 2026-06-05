@@ -20,6 +20,7 @@
 
 #include "rt_config.h"
 #include "chip/mt7915_cr.h"
+#ifndef LOAD_BIN_FIRMWARE
 #include "mcu/mt7915_firmware.h"
 #include "mcu/mt7915_firmware_e2.h"
 #include "mcu/mt7915_WA_firmware.h"
@@ -27,6 +28,7 @@
 #include "mcu/mt7915_rom_patch_e1.h"
 #include "mcu/mt7915_rom_patch_e2.h"
 #endif /* NEED_ROM_PATCH */
+#endif /* LOAD_BIN_FIRMWARE */
 #include "mac/mac_mt/fmac/mt_fmac.h"
 
 /* iPAiLNA shall always be included as default */
@@ -1257,42 +1259,56 @@ static VOID fw_prepare(RTMP_ADAPTER *pAd)
 
 #ifdef NEED_ROM_PATCH
 	if (IS_MT7915_FW_VER_E1(pAd)) {
+#ifndef LOAD_BIN_FIRMWARE
 		ctrl->patch_profile[WM_CPU].source.header_ptr = mt7915_rom_patch_e1;
 		ctrl->patch_profile[WM_CPU].source.header_len = sizeof(mt7915_rom_patch_e1);
+#endif
 		ctrl->patch_profile[WM_CPU].source.bin_name = MT7915_ROM_PATCH_BIN_FILE_NAME_E1;
 		MTWF_LOG(DBG_CAT_HW, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s():using E1 ROM patch\n", __func__));
 	} else if (IS_MT7915_FW_VER_E2(pAd)) {
+#ifndef LOAD_BIN_FIRMWARE
 		ctrl->patch_profile[WM_CPU].source.header_ptr = mt7915_rom_patch_e2;
 		ctrl->patch_profile[WM_CPU].source.header_len = sizeof(mt7915_rom_patch_e2);
+#endif
 		ctrl->patch_profile[WM_CPU].source.bin_name = MT7915_ROM_PATCH_BIN_FILE_NAME_E2;
 		MTWF_LOG(DBG_CAT_HW, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s():using E2 ROM patch\n", __func__));
 	} else {
 		/* Use E2 rom patch as default */
+#ifndef LOAD_BIN_FIRMWARE
 		ctrl->patch_profile[WM_CPU].source.header_ptr = mt7915_rom_patch_e2;
 		ctrl->patch_profile[WM_CPU].source.header_len = sizeof(mt7915_rom_patch_e2);
+#endif
 		ctrl->patch_profile[WM_CPU].source.bin_name = MT7915_ROM_PATCH_BIN_FILE_NAME_E2;
 		MTWF_LOG(DBG_CAT_HW, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s():Rom patch is not E1 or E2, so using the default E2 ROM patch\n", __func__));
 
 	}
 #endif /* NEED_ROM_PATCH */
 	if (IS_MT7915_FW_VER_E1(pAd)) {
+#ifndef LOAD_BIN_FIRMWARE
 		ctrl->fw_profile[WM_CPU].source.header_ptr = MT7915_FirmwareImage_E1;
 		ctrl->fw_profile[WM_CPU].source.header_len = sizeof(MT7915_FirmwareImage_E1);
+#endif
 		ctrl->fw_profile[WM_CPU].source.bin_name = MT7915_BIN_FILE_NAME_E1;
 		MTWF_LOG(DBG_CAT_HW, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s():using E1 RAM\n", __func__));
 	} else if (IS_MT7915_FW_VER_E2(pAd)) {
+#ifndef LOAD_BIN_FIRMWARE
 		ctrl->fw_profile[WM_CPU].source.header_ptr = MT7915_FirmwareImage_E2;
 		ctrl->fw_profile[WM_CPU].source.header_len = sizeof(MT7915_FirmwareImage_E2);
+#endif
 		ctrl->fw_profile[WM_CPU].source.bin_name = MT7915_BIN_FILE_NAME_E2;
 		MTWF_LOG(DBG_CAT_HW, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s():using E2 RAM\n", __func__));
 	} else {
+#ifndef LOAD_BIN_FIRMWARE
 		ctrl->fw_profile[WM_CPU].source.header_ptr = MT7915_FirmwareImage_E2;
 		ctrl->fw_profile[WM_CPU].source.header_len = sizeof(MT7915_FirmwareImage_E2);
+#endif
 		ctrl->fw_profile[WM_CPU].source.bin_name = MT7915_BIN_FILE_NAME_E2;
 		MTWF_LOG(DBG_CAT_HW, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s():RAM is not E1 or E2, so using the default E2 RAM\n", __func__));
 	}
+#ifndef LOAD_BIN_FIRMWARE
 	ctrl->fw_profile[WA_CPU].source.header_ptr = MT7915_WA_FirmwareImage;
 	ctrl->fw_profile[WA_CPU].source.header_len = sizeof(MT7915_WA_FirmwareImage);
+#endif
 	ctrl->fw_profile[WA_CPU].source.bin_name = MT7915_WA_BIN_FILE_NAME;
 }
 
@@ -11831,8 +11847,8 @@ static VOID mt7915_chipCap_init(struct _RTMP_ADAPTER *pAd, RTMP_CHIP_CAP *chip_c
 	chip_cap->load_fw_flow = FW_FLOW_V1;
 	chip_cap->patch_format = PATCH_FORMAT_V2;
 	chip_cap->fw_format = FW_FORMAT_V3;
-	chip_cap->load_patch_method = BIT(HEADER_METHOD);
-	chip_cap->load_fw_method = BIT(HEADER_METHOD);
+	chip_cap->load_patch_method = BIT(BIN_METHOD);//BIT(HEADER_METHOD);
+	chip_cap->load_fw_method = BIT(BIN_METHOD);//BIT(HEADER_METHOD);
 	chip_cap->rom_patch_offset = MT7915_ROM_PATCH_START_ADDRESS;
 #endif
 #ifdef UNIFY_FW_CMD

@@ -266,7 +266,6 @@ define KernelPackage/mt_wifi/config
 	source "$(SOURCE)/config.in"
 endef
 
-
 define Build/Compile
 	$(MAKE) -C "$(LINUX_DIR)" V=0 \
 		CROSS_COMPILE="$(TARGET_CROSS)" \
@@ -277,7 +276,16 @@ define Build/Compile
 		modules
 endef
 
+define Build/Prepare
+	$(call Build/Prepare/Default)
+
+	mkdir -p $(PKG_BUILD_DIR)/firmware
+	cp -fpR ./firmware/*.bin $(PKG_BUILD_DIR)/firmware/
+endef
+
 define KernelPackage/mt_wifi/install
+	$(INSTALL_DIR) $(1)/lib/firmware/mediatek
+	$(CP) $(PKG_BUILD_DIR)/firmware/*.bin $(1)/lib/firmware/mediatek/
 endef
 
 $(eval $(call KernelPackage,mt_wifi))
