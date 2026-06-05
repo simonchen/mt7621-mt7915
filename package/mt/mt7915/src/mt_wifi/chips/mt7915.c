@@ -11845,28 +11845,28 @@ static VOID mt7915_chipCap_init(struct _RTMP_ADAPTER *pAd, RTMP_CHIP_CAP *chip_c
 	chip_cap->ppdu.TxAggLimit = 64;
 	chip_cap->ppdu.non_he_tx_ba_wsize = BA_WIN_SZ_64;
 	chip_cap->ppdu.non_he_rx_ba_wsize = BA_WIN_SZ_64;
-	chip_cap->ppdu.he_tx_ba_wsize = BA_WIN_SZ_256;
-	chip_cap->ppdu.he_rx_ba_wsize = BA_WIN_SZ_256;
-	chip_cap->ppdu.max_amsdu_len = MPDU_7991_OCTETS;
-	chip_cap->ppdu.ht_max_ampdu_len_exp = 3;
+	chip_cap->ppdu.he_tx_ba_wsize = BA_WIN_SZ_64;//BA_WIN_SZ_256; // simonchen
+	chip_cap->ppdu.he_rx_ba_wsize = BA_WIN_SZ_64;//BA_WIN_SZ_256; // simonchen
+	chip_cap->ppdu.max_amsdu_len = 0;//MPDU_7991_OCTETS; // disable amsdu // simonchen
+	chip_cap->ppdu.ht_max_ampdu_len_exp = 2;//3 // simonchen
 #ifdef DOT11_VHT_AC
-	chip_cap->ppdu.max_mpdu_len = MPDU_7991_OCTETS;
-	chip_cap->ppdu.vht_max_ampdu_len_exp = 7;
+	chip_cap->ppdu.max_mpdu_len = 0;//MPDU_7991_OCTETS; // disable amsdu // simonchen
+	chip_cap->ppdu.vht_max_ampdu_len_exp = 6;//7; // 5-32kb, 6-64kb, 7-128kb // simonchen
 #endif /* DOT11_VHT_AC */
 #ifdef DOT11_HE_AX
-	chip_cap->ppdu.he_max_ampdu_len_exp = 3;
+	chip_cap->ppdu.he_max_ampdu_len_exp = 3; // 2-32kb, 3-64kb
 	chip_cap->ppdu.max_agg_tid_num = 1;
 	chip_cap->ppdu.default_pe_duration = 4;/*unit:4us*/
 	chip_cap->ppdu.er_su_dis = 1;/*disable ER_SU*/
-	chip_cap->ppdu.trig_mac_pad_dur = PADDING_16US;/*unit:8us*/
+	chip_cap->ppdu.trig_mac_pad_dur = PADDING_8US; //PADDING_16US;/*unit:8us*/ // simonchen
 #endif
 #ifdef RACTRL_FW_OFFLOAD_SUPPORT
 	chip_cap->fgRateAdaptFWOffload = TRUE;
 #endif /* RACTRL_FW_OFFLOAD_SUPPORT */
 	chip_cap->qos.WmmHwNum = 4;
 	chip_cap->PDA_PORT = 0xf800;
-	chip_cap->ppdu.tx_amsdu_support = TRUE;
-	chip_cap->ppdu.rx_amsdu_in_ampdu_support = TRUE;
+	chip_cap->ppdu.tx_amsdu_support = TRUE; // disable amsdu // simonchen 
+	chip_cap->ppdu.rx_amsdu_in_ampdu_support = FALSE;//TRUE; // disable amsdu // simonchen
 	chip_cap->APPSMode = APPS_MODE2;
 	chip_cap->CtParseLen = CT_PARSE_PAYLOAD_LEN ;
 	chip_cap->qm = FAST_PATH_QM;

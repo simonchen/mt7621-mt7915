@@ -310,6 +310,8 @@ VOID set_sta_ht_cap(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *entry, HT_CAPABILITY_IE 
 		entry->amsdu_limit_len = ht_max_mpdu_size[entry->AMsduSize];
 	else
 		entry->amsdu_limit_len = 0;
+
+	entry->amsdu_limit_len = 0; // disable amsdu // simonchen
 	entry->amsdu_limit_len_adjust = entry->amsdu_limit_len;
 }
 

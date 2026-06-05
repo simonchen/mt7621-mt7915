@@ -676,6 +676,8 @@ VOID set_vht_cap(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *entry, VHT_CAP_IE *vht_cap_
 		entry->amsdu_limit_len = vht_max_mpdu_size[entry->AMsduSize];
 	else
 		entry->amsdu_limit_len = 0;
+
+	entry->amsdu_limit_len = 0; // disable amsdu // simonchen
 	entry->amsdu_limit_len_adjust = entry->amsdu_limit_len;
 }
 
