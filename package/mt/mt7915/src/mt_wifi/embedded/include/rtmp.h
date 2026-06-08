@@ -1181,8 +1181,8 @@ typedef struct _COUNTER_RALINK {
 	UINT32 OneSecRxARalinkCnt;	/* Rx Ralink Aggregation frame cnt */
 	UINT32 OneSecEnd;	/* for one sec count clear use */
 
-	ULONG TransmittedByteCount;	/* both successful and failure, used to calculate TX throughput */
-	ULONG ReceivedByteCount;	/* both CRC okay and CRC error, used to calculate RX throughput */
+	ULONGLONG TransmittedByteCount;	/* both successful and failure, used to calculate TX throughput */
+	ULONGLONG ReceivedByteCount;	/* both CRC okay and CRC error, used to calculate RX throughput */
 	ULONG BadCQIAutoRecoveryCount;
 	ULONG PoorCQIRoamingCount;
 	ULONG MgmtRingFullCount;
@@ -2445,10 +2445,10 @@ typedef struct _BSS_STRUCT {
 		Statistics segment
 	*/
 	/*MBSS_STATISTICS MbssStat;*/
-	ULONG TxCount;
-	ULONG RxCount;
-	ULONG ReceivedByteCount;
-	ULONG TransmittedByteCount;
+	ULONGLONG TxCount;
+	ULONGLONG RxCount;
+	ULONGLONG ReceivedByteCount;
+	ULONGLONG TransmittedByteCount;
 	ULONG RxErrorCount;
 	ULONG RxDropCount;
 
@@ -3241,10 +3241,10 @@ typedef struct _apcli_inf_stat {
 } APCLI_INF_STAT, *PAPCLI_INF_STAT;
 
 typedef struct _stat_counters {
-	ULONG TxCount;
-	ULONG RxCount;
-	ULONG ReceivedByteCount;
-	ULONG TransmittedByteCount;
+	ULONGLONG TxCount;
+	ULONGLONG RxCount;
+	ULONGLONG ReceivedByteCount;
+	ULONGLONG TransmittedByteCount;
 	ULONG RxErrorCount;
 	ULONG RxDropCount;
 

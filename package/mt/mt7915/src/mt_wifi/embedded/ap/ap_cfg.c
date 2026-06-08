@@ -15385,10 +15385,10 @@ VOID RTMPIoctlStatistics(RTMP_ADAPTER *pAd, RTMP_IOCTL_INPUT_STRUCT *wrq)
 #ifdef RTMP_EFUSE_SUPPORT
 	UINT efusefreenum = 0;
 #endif /* RTMP_EFUSE_SUPPORT */
-#ifdef BB_SOC
-	ULONG txPackets = 0, rxPackets = 0, txBytes = 0, rxBytes = 0;
+//#ifdef BB_SOC
+	ULONGLONG txPackets = 0, rxPackets = 0, txBytes = 0, rxBytes = 0;
 	UCHAR index = 0;
-#endif
+//#endif
 	BOOLEAN isfound = FALSE;
 	struct _RTMP_CHIP_CAP *cap = hc_get_chip_cap(pAd->hdev_ctrl);
 
@@ -15420,6 +15420,7 @@ VOID RTMPIoctlStatistics(RTMP_ADAPTER *pAd, RTMP_IOCTL_INPUT_STRUCT *wrq)
 
 	memset(msg, 0x00, msg_len);
 	snprintf(msg, msg_len, "\n");
+	snprintf(msg + strlen(msg), msg_len - strlen(msg), "Band              = %d\n", ucBand); // simonchen
 	MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_LOUD, ("ra offload=%d\n", cap->fgRateAdaptFWOffload));
 #ifdef RACTRL_FW_OFFLOAD_SUPPORT
 
@@ -15822,21 +15823,23 @@ VOID RTMPIoctlStatistics(RTMP_ADAPTER *pAd, RTMP_IOCTL_INPUT_STRUCT *wrq)
 	/*
 	 * Let "iwpriv ra0 stat" can print out Tx/Rx Packet and Byte count.
 	 * Therefore, we can parse them out in cfg_manager. --Trey */
-#ifdef BB_SOC
+//#ifdef BB_SOC
 
 	for (index = 0; index < pAd->ApCfg.BssidNum; index++) {
-		rxPackets += (ULONG)pAd->ApCfg.MBSSID[index].RxCount;
-		txPackets += (ULONG)pAd->ApCfg.MBSSID[index].TxCount;
-		rxBytes += (ULONG)pAd->ApCfg.MBSSID[index].ReceivedByteCount;
-		txBytes += (ULONG)pAd->ApCfg.MBSSID[index].TransmittedByteCount;
+		if (HcGetBandByWdev(&pAd->ApCfg.MBSSID[index].wdev) != ucBand)
+			continue; // simonchen // only make stats. by BAND.
+		rxPackets += pAd->ApCfg.MBSSID[index].RxCount;
+		txPackets += pAd->ApCfg.MBSSID[index].TxCount;
+		rxBytes += pAd->ApCfg.MBSSID[index].ReceivedByteCount;
+		txBytes += pAd->ApCfg.MBSSID[index].TransmittedByteCount;
 	}
 
-	snprintf(msg + strlen(msg), msg_len - strlen(msg), "Packets Received       = %lu\n", rxPackets);
-	snprintf(msg + strlen(msg), msg_len - strlen(msg), "Packets Sent           = %lu\n", txPackets);
-	snprintf(msg + strlen(msg), msg_len - strlen(msg), "Bytes Received         = %lu\n", rxBytes);
-	snprintf(msg + strlen(msg), msg_len - strlen(msg), "Bytes Sent             = %lu\n", txBytes);
+	snprintf(msg + strlen(msg), msg_len - strlen(msg), "Packets Received       = %llu\n", rxPackets);
+	snprintf(msg + strlen(msg), msg_len - strlen(msg), "Packets Sent           = %llu\n", txPackets);
+	snprintf(msg + strlen(msg), msg_len - strlen(msg), "Bytes Received         = %llu\n", rxBytes);
+	snprintf(msg + strlen(msg), msg_len - strlen(msg), "Bytes Sent             = %llu\n", txBytes);
 	snprintf(msg + strlen(msg), msg_len - strlen(msg), "\n");
-#endif
+//#endif
 #ifdef RTMP_EFUSE_SUPPORT
 
 	if (pAd->bUseEfuse == TRUE) {
