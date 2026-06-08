@@ -105,7 +105,7 @@ const struct hif_pci_tx_ring_desc tx_ring_layout[] = {
 	{
 	 .hw_desc_base = MT_DMA1_T19_RING_BASE,
 	 .hw_int_mask = MT_INT_DMA1_T19_DONE,
-	 .ring_size = 2048,
+	 .ring_size = 4096, //2048, // simonchen
 	 .ring_attr = HIF_TX_DATA,
 	 .band_idx = BAND1,
 	 .ring_info = "band1 TXD"
@@ -286,7 +286,7 @@ const struct hif_pci_rx_ring_desc rx_ring_layout[] = {
 	{
 	 .hw_desc_base = MT_DMA0_R0_RING_BASE,
 	 .hw_int_mask = MT_INT_DMA0_R0_DONE,
-	 .ring_size = 1536,
+	 .ring_size = 768, //1536,
 	 .ring_attr = HIF_RX_DATA,
 	 .delay_int_en = TRUE,
 	 .dl_dly_ctl_tbl = dly_ctl_dl_tbl_hostdma0_r0,
@@ -295,8 +295,8 @@ const struct hif_pci_rx_ring_desc rx_ring_layout[] = {
 	 .ul_dly_ctl_tbl = dly_ctl_ul_tbl_hostdma0_r0,
 	 .ul_dly_ctl_tbl_size = sizeof(dly_ctl_ul_tbl_hostdma0_r0)
 							/ sizeof(dly_ctl_ul_tbl_hostdma0_r0[0]),
-	 .max_rx_process_cnt = 128,
-	 .max_sw_read_idx_inc = 128,
+	 .max_rx_process_cnt = 64, //128,
+	 .max_sw_read_idx_inc = 64, //128,
 	 .buf_type = DYNAMIC_PAGE_ALLOC,
 	 .band_idx = BAND0_RX_PCIE0,
 	 .ring_info = "band0 RX data"
@@ -304,7 +304,7 @@ const struct hif_pci_rx_ring_desc rx_ring_layout[] = {
 	{
 	 .hw_desc_base = MT_DMA0_R1_RING_BASE,
 	 .hw_int_mask = MT_INT_DMA0_R1_DONE,
-	 .ring_size = 1536,
+	 .ring_size = 768, //1536, // simonchen
 	 .ring_attr = HIF_RX_DATA,
 	 .delay_int_en = TRUE,
 	 .dl_dly_ctl_tbl = dly_ctl_dl_tbl_hostdma0_r1,
@@ -313,8 +313,8 @@ const struct hif_pci_rx_ring_desc rx_ring_layout[] = {
 	 .ul_dly_ctl_tbl = dly_ctl_ul_tbl_hostdma0_r1,
 	 .ul_dly_ctl_tbl_size = sizeof(dly_ctl_ul_tbl_hostdma0_r1)
 							/ sizeof(dly_ctl_ul_tbl_hostdma0_r1[0]),
-	 .max_rx_process_cnt = 128,
-	 .max_sw_read_idx_inc = 128,
+	 .max_rx_process_cnt = 64, //128, // simonchen
+	 .max_sw_read_idx_inc = 64, //128, // siomonchen
 	 .buf_type = DYNAMIC_PAGE_ALLOC,
 	 .band_idx = BAND1_RX_PCIE0,
 	 .ring_info = "band1 RX data"
@@ -11739,10 +11739,10 @@ static VOID mt7915_chipCap_init(struct _RTMP_ADAPTER *pAd, RTMP_CHIP_CAP *chip_c
 	chip_cap->tx_ring_size = 1024;
 	chip_cap->tkn_info.feature = TOKEN_TX;
 	chip_cap->tkn_info.token_tx_cnt = 8192;
-	chip_cap->tkn_info.band0_token_cnt = 2048;
+	chip_cap->tkn_info.band0_token_cnt = 512;//2048; // simonchen // 2.4G don't need too much tokens
 	chip_cap->tkn_info.low_water_mark = 5;
 	chip_cap->tkn_info.hw_tx_token_cnt = 7168;
-	chip_cap->tkn_info.token_rx_cnt = 15360;
+	chip_cap->tkn_info.token_rx_cnt = 3072;//15360; // simonchen // mt7621 can't process much rx pkts.
 	chip_cap->multi_token_ques_per_band = TRUE;
 
 	chip_cap->asic_caps = (fASIC_CAP_PMF_ENC | fASIC_CAP_MCS_LUT
@@ -11859,8 +11859,8 @@ static VOID mt7915_chipCap_init(struct _RTMP_ADAPTER *pAd, RTMP_CHIP_CAP *chip_c
 	chip_cap->cmd_padding_len = 0;
 	/* ppdu_caps */
 	chip_cap->ppdu.TxAggLimit = 64;
-	chip_cap->ppdu.non_he_tx_ba_wsize = BA_WIN_SZ_64;
-	chip_cap->ppdu.non_he_rx_ba_wsize = BA_WIN_SZ_64;
+	chip_cap->ppdu.non_he_tx_ba_wsize = 32;//BA_WIN_SZ_64; // simonchen
+	chip_cap->ppdu.non_he_rx_ba_wsize = 32;//BA_WIN_SZ_64; // simonchen
 	chip_cap->ppdu.he_tx_ba_wsize = BA_WIN_SZ_64;//BA_WIN_SZ_256; // simonchen
 	chip_cap->ppdu.he_rx_ba_wsize = BA_WIN_SZ_64;//BA_WIN_SZ_256; // simonchen
 	chip_cap->ppdu.max_amsdu_len = 0;//MPDU_7991_OCTETS; // disable amsdu // simonchen
