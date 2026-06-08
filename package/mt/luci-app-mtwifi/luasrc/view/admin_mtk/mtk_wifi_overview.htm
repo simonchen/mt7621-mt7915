@@ -18,6 +18,14 @@ local mtkwifi = require("mtkwifi")
 local mtkwifis = require("mtkwifis")
 local devs = mtkwifi.get_all_devs()
 
+local allowed_keys = {"Band", "CurrentTemperature", "RSSI", "CurrChannel"};
+local function has_value(tab, val)
+    for _, value in ipairs(tab) do
+        if value == val then return true end
+    end
+    return false
+end
+
 if not mtkwifi.exists("/etc/wireless/mt7603/") then
 	mt1 = "mt7615.1.2G"
 elseif mtkwifi.exists("/etc/wireless/mt7603/") and mtkwifi.exists("/etc/wireless/mt7612/") then
@@ -83,7 +91,7 @@ table {
  }
 }
 </style>
-
+<script type="text/javascript" src="/luci-static/resources/mtk-netmon.js"></script>
 <div id="container">
 	<h2><a>Wireless Overview</a></h2>
 	
@@ -98,7 +106,7 @@ table {
 	</fieldset>
 	<% end %>
 
-	<% for _,dev in ipairs(devs) do %>
+	<% for dev_idx,dev in ipairs(devs) do %>
 	<fieldset class="cbi-section">
 		<table data-ss="1" class="cbi-section-table" style="margin:10px; empty-cells:hide">
 			<!-- physical device -->
@@ -107,7 +115,7 @@ table {
 					<td style="width:34px">
 						<img src="/luci-static/resources/icons/wifi_mtk.png" alt="" style="float:left; margin-right:10px" />
 					</td>
-					<td colspan="3" style="text-align:left">
+					<td colspan="2" style="text-align:left">
 						<big><strong class="ren" title="<%=dev.profile%>"> Mediatek <%=dev.devname%></strong></big>
 						<br/>
 						<span><strong>Work mode:</strong>  <% if dev.ApCliEnable == "1" then %> APCli <% else %> Master AP<% end %> </span>
@@ -120,6 +128,17 @@ table {
 						end
 						%>
 					</td>
+					<td id="monitor_<%=dev_idx%>"></td>
+<script type="text/javascript">
+const monitor_<%=dev_idx%> = new window.NetworkMonitor('monitor_<%=dev_idx%>', {
+    width: 500,
+    height: 120,
+    activeTab: 'tx',
+    rxColor: '#00e676',
+    txColor: '#ff9100',
+    canvasBg: '#fff'
+});
+</script>
 					<td style="width:330px;text-align:right">
 						<input class="cbi-button cbi-button-reload" style="width:100px" title="Reload Wi-Fi network" value="Reload" type="button" onclick='wifi_reload("<%=luci.dispatcher.build_url("admin", "network", "wifi", "reload", dev.devname)%>");' />
 						<input class="cbi-button cbi-button-edit" style="width:100px" title="Configure Wi-Fi device" value="Config" type="button" onclick="location.href='<%=luci.dispatcher.build_url("admin", "network", "wifi", "dev_cfg_view", dev.devname)%>'" />
@@ -146,13 +165,24 @@ table {
 						Wireless is disabled
 						<% end %>
 					</td>
-					<td id="vif_stat_<%=vif.vifname%>" name="vif_stat" class="cbi-value-field" style="opacity:0.8;min-width:100px;vertical-align:middle; text-align:left; padding:3px">
 <%
-local stat = mtkwifi.get_vif_stat(vif.vifname)
+local stat = mtkwifi.get_vif_stat(vif.vifname) or {}
+%>
+					<td id="vif_stat_<%=vif.vifname%>" name="vif_stat" monitor_name="monitor_<%=dev_idx%>" class="cbi-value-field" style="opacity:1;min-width:100px;text-align:center !important;vertical-align:middle; text-align:left; padding:3px">
+<span style="display:none;">timestamp: <%=stat['timestamp']%></span>
+<%
 for _, k in ipairs(stat._order or {}) do 
     local v = stat[k]
+    local style = ""
+    local color = "#2eaf7d"
+    if not has_value(allowed_keys, k) then
+        style = "display: none;"
+    end
+    if k == "CurrentTemperature" and tonumber(v) > 65 then
+        color = "#ffa500"
+    end
 %>
-<span><%=k%></span>: <span style="color:darkblue;"><%=v%></span>
+<span style="<%=style%>"><%=translate(k)%>: </span><span style="margin-right:2px;color:<%=color%>;<%=style%>"><%=v%></span>
 <%
 end
 %>
@@ -180,7 +210,7 @@ end
 				<% if dev.apcli then %>
 				<tr>
 					<td></td>
-					<td class="cbi-value-field" style="width:16px; padding:3px">
+					<td id="apcli_signal_<%=dev.apcli.devname%>" name="apcli_signal" class="cbi-value-field" style="width:16px; padding:3px">
 						<% if dev.apcli.state == "up" then %>
 							<% if dev.apcli.status == "connected" then %>
 							<img src="/luci-static/resources/icons/signal-75-100.png" alt="" />
@@ -191,7 +221,7 @@ end
 						<img src="/luci-static/resources/icons/signal-none.png" alt="" />
 						<% end %>
 					</td>
-					<td class="cbi-value-field" style="min-width:150px;vertical-align:middle; text-align:left; padding:3px"><strong>Interface:</strong> <%=dev.apcli.devname%> | <strong>Type:</strong> STA | <strong>Status:</strong> <%=dev.apcli.status%>
+					<td id="apcli_status_<%=dev.apcli.devname%>" name="apcli_status" class="cbi-value-field" style="min-width:150px;vertical-align:middle; text-align:left; padding:3px"><strong>Interface:</strong> <%=dev.apcli.devname%> | <strong>Type:</strong> STA | <strong>Status:</strong> <%=dev.apcli.status%>
 						<br/>
 						<% if dev.apcli.status == "connected" then %>
 						<strong>BSSID:</strong> <%=dev.apcli.bssid%> |
@@ -206,13 +236,21 @@ end
 							<% end %>
 						<% end %>
 					</td>
-                                        <td id="vif_stat_<%=dev.apcli.devname%>" name="vif_stat" class="cbi-value-field" style="opacity:0.8;min-width:100px;vertical-align:middle; text-align:left; padding:3px">
+                                        <td id="vif_stat_<%=dev.apcli.devname%>" name="vif_stat" class="cbi-value-field" style="opacity:1;min-width:100px;text-align:center !important;vertical-align:middle; text-align:left; padding:3px">
 <%
 local stat = mtkwifi.get_vif_stat(dev.apcli.devname)
 for _, k in ipairs(stat._order or {}) do
     local v = stat[k]
+    local style = ""
+    local color = "#2eaf7d"
+    if not has_value(allowed_keys, k) then
+        style = "display: none;"
+    end
+    if k == "CurrentTemperature" and tonumber(v) > 65 then
+        color = "#ffa500"
+    end
 %>
-<span><%=k%></span>: <span style="color:darkblue;"><%=v%></span>
+<span style="<%=style%>"><%=translate(k)%>: </span><span style="margin-right:2px;color:<%=color%>;<%=style%>"><%=v%></span>
 <%
 end
 %>
@@ -235,10 +273,10 @@ end
 	</fieldset>
 	<% end %>
 
-	<fieldset class="cbi-section" style="display:none;">
+	<fieldset class="cbi-section">
 		<h2>
 		<a>Associated Stations</a>
-		<input class="cbi-button cbi-button-reload" style="height:26px; width:105px" type="button" title="Auto Refresh - Associated Stations" id="mixBut" value="Auto Refresh" />
+		<input class="cbi-button cbi-button-reload" style="display:none;height:26px; width:105px" type="button" title="Auto Refresh - Associated Stations" id="mixBut" value="Auto Refresh" />
 		</h2>
 	</fieldset>
 
@@ -454,7 +492,7 @@ mixBut.addEventListener("click", Start);
 timer = false;
 
 function Start(){
-	timer = setInterval(a, 5000);
+	timer = setInterval(a, 2000);
 	mixBut.removeEventListener("click", Start);
 	mixBut.addEventListener("click", Stop);
 	mixBut.value = "Stop";
@@ -478,7 +516,43 @@ function a(){
 			var vifElements = document.querySelectorAll('[name="vif_stat"]');
 			vifElements.forEach(function(elem){
 				var hid = '#' + elem.id;
-				$(elem).html(html.find(hid).html());
+				var mn = elem.getAttribute("monitor_name");
+				var cur_content = $(elem).html();
+				var content = html.find(hid).html();
+				$(elem).html(content);
+				if (mn && mn.length > 0) {
+					var c_ts = cur_content.match(/timestamp:\s*(\d+)/i);
+					var c_txm = cur_content.match(/Bytes Sent:\s*<\/span><span[^>]*>(\d+)<\/span>/i);
+					var c_rxm = cur_content.match(/Bytes Received:\s*<\/span><span[^>]*>(\d+)<\/span>/i);
+					var ts = content.match(/timestamp:\s*(\d+)/i);
+					var txm = content.match(/Bytes Sent:\s*<\/span><span[^>]*>(\d+)<\/span>/i);
+					var rxm = content.match(/Bytes Received:\s*<\/span><span[^>]*>(\d+)<\/span>/i);
+
+					const c_tx = c_txm ? c_txm[1] : 0;
+					const c_rx = c_rxm ? c_rxm[1] : 0;
+					const tx = txm ? txm[1] : 0;
+					const rx = rxm ? rxm[1] : 0;
+					const dt = (ts ? ts[1] : 2) - (c_ts ? c_ts[1] : 1);
+					eval(mn + '.pushRx(' + (rx - c_rx)/dt + ')');
+					eval(mn + '.pushTx(' + (tx - c_tx)/dt + ')');
+					eval(mn + '.updateTotalRx(' + rx + ')');
+					eval(mn + '.updateTotalTx(' + tx + ')');
+					//console.log("=========mt7915: rx=" + (rx-c_rx)/dt + ", tx=" + (tx - c_tx)/dt);
+				}
+			});
+			
+			var apcliSignalElements = document.querySelectorAll('[name="apcli_signal"]');
+			apcliSignalElements.forEach(function(elem){
+				var hid = '#' + elem.id;
+				var content = html.find(hid).html();
+				$(elem).html(content);
+			});
+
+			var apcliStatusElements = document.querySelectorAll('[name="apcli_status"]');
+			apcliStatusElements.forEach(function(elem){
+				var hid = '#' + elem.id;
+                                var content = html.find(hid).html();
+                                $(elem).html(content);
 			});
 		});
 	}

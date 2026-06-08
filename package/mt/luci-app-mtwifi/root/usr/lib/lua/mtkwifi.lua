@@ -970,7 +970,9 @@ function mtkwifi.restart_8021x(devname, devices)
 end
 
 local function parse_raw_stat(text)
-    local res = {}
+    local res = {
+	timestamp = os.time()
+    }
     if not text then return res end
 
     -- clear first line
