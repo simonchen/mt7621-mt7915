@@ -26,6 +26,31 @@
 #include "chip/mt7915_cr.h"
 #endif
 
+// simonchen - RPS Target CPU
+#define POLL_PKTS_64 64
+#define POLL_PKTS_256 256
+#define POLL_PKTS_512 512
+#define POLL_PKTS_1024 1024
+#define GET_TARGET_CPU_HASH(roller, net_dev, pkts) ({          \
+    u32 __hash_val = 0;                                         \
+    struct net_device *__dev = (struct net_device *)(net_dev);  \
+    \
+    if (likely(__dev)) {                                        \
+        struct rps_map *__map = __dev->_rx->rps_map;            \
+        u32 __ep_ro = (__map) ? __map->len : 0;                \
+        \
+        if (__ep_ro < 2) {                                      \
+            __ep_ro = 2;                                        \
+        }                                                       \
+        \
+        u32 __mask  = (__ep_ro == 4 || __ep_ro == 3) ? 3  : 1;  \
+        u32 __shift = (__ep_ro == 4 || __ep_ro == 3) ? 30 : 31; \
+        \
+        __hash_val = (((u32)(roller) >> (31 - __builtin_clz(pkts))) & __mask) << __shift; \
+    }                                                           \
+    __hash_val;                                                 \
+})
+
 /*local func.*/
 /*internal io read/write*/
 /*Read Ops*/
@@ -1509,7 +1534,7 @@ done:
 	return skb_pkt;
 }
 
-UINT fake_hash_roller = 0;
+UINT fake_hash_roller ____cacheline_aligned = 0;
 static PNDIS_PACKET pci_get_pkt_dynamic_page_ddone(
 	struct _RTMP_ADAPTER *pAd,
 	BOOLEAN *pbReschedule,
@@ -1627,7 +1652,8 @@ static PNDIS_PACKET pci_get_pkt_dynamic_page_ddone(
 			} else
 					//RTPKT_TO_OSPKT(pRxPacket)->hash = smp_processor_id()+1;
 					// simonchen (switch cpu by every 512 pkts)
-					skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 10 & 1) << 31, PKT_HASH_TYPE_L4);
+					//skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 10 & 1) << 31, PKT_HASH_TYPE_L4);
+					skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller++, pAd->net_dev, POLL_PKTS_64), PKT_HASH_TYPE_L4);
 			}
 
 #endif
@@ -1827,7 +1853,8 @@ static PNDIS_PACKET pci_get_pkt_dynamic_page_io(
 		}
 #ifdef RX_RPS_SUPPORT
 		if (pRxPacket) { // simonchen
-			skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 8 & 1) << 31, PKT_HASH_TYPE_L4);
+			//skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 8 & 1) << 31, PKT_HASH_TYPE_L4);
+			skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller++, pAd->net_dev, POLL_PKTS_256), PKT_HASH_TYPE_L4);
 		}
 #endif
 	} else {
@@ -1968,7 +1995,8 @@ static PNDIS_PACKET pci_get_pkt_dynamic_slab_ddone(
 		}
 #ifdef RX_RPS_SUPPORT
                 if (pRxPacket) { // simonchen
-                        skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 6 & 1) << 31, PKT_HASH_TYPE_L4);
+                        //skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 6 & 1) << 31, PKT_HASH_TYPE_L4);
+			skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller++, pAd->net_dev, POLL_PKTS_64), PKT_HASH_TYPE_L4);
                 }
 #endif
 	} else {
@@ -2131,7 +2159,8 @@ static PNDIS_PACKET pci_get_pkt_dynamic_slab_io(
 		}
 #ifdef RX_RPS_SUPPORT
                 if (pRxPacket) { // simonchen
-                        skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 6 & 1) << 31, PKT_HASH_TYPE_L4);
+                        //skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 6 & 1) << 31, PKT_HASH_TYPE_L4);
+			skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller++, pAd->net_dev, POLL_PKTS_64), PKT_HASH_TYPE_L4);
                 }
 #endif
 	} else {
@@ -2854,7 +2883,7 @@ static BOOLEAN pci_rx_dma_done_handle(RTMP_ADAPTER *pAd, UINT8 resource_idx)
 		tp_dbg->IoWriteRx++;
 #endif
 	}
-/*
+
 	if (rx_ring->ring_attr == HIF_RX_DATA) {
 		if (!bReschedule || !bLastPktExist) {
 			rx_ring->max_rx_process_cnt = s_max_rx_process_cnt;
@@ -2862,7 +2891,7 @@ static BOOLEAN pci_rx_dma_done_handle(RTMP_ADAPTER *pAd, UINT8 resource_idx)
 			rx_ring->max_rx_process_cnt = s_max_rx_process_cnt >> 1;
 		}
 	}
-*/
+
 	RTMP_SEM_UNLOCK(lock);
 
 #ifdef CONFIG_TP_DBG
@@ -2989,6 +3018,13 @@ BOOLEAN pci_rx_event_dma_done_handle(RTMP_ADAPTER *pAd, UINT8 resource_idx)
 	RX_BLK rx_blk, *p_rx_blk = NULL;
 	UINT16 max_rx_process_cnt = rx_ring->max_rx_process_cnt;
 
+        static UINT16 s_max_rx_process_cnt = 0;
+        BOOLEAN bLastPktExist = TRUE;
+
+        if (s_max_rx_process_cnt == 0 && rx_ring->ring_attr == HIF_RX_EVENT) {
+                s_max_rx_process_cnt = max_rx_process_cnt;
+        }
+
 #ifdef CONFIG_TP_DBG
 	struct tp_debug *tp_dbg = &pAd->tr_ctl.tp_dbg;
 #endif
@@ -3020,6 +3056,7 @@ BOOLEAN pci_rx_event_dma_done_handle(RTMP_ADAPTER *pAd, UINT8 resource_idx)
 				p_rx_blk = &rx_blk;
 				asic_rx_pkt_process(pAd, resource_idx, p_rx_blk, pkt);
 		} else {
+			bLastPktExist = FALSE;
 			break;
 		}
 	}
@@ -3031,6 +3068,14 @@ BOOLEAN pci_rx_event_dma_done_handle(RTMP_ADAPTER *pAd, UINT8 resource_idx)
 		tp_dbg->IoWriteRx++;
 #endif
 	}
+
+        if (rx_ring->ring_attr == HIF_RX_EVENT) {
+                if (!bReschedule || !bLastPktExist) {
+                        rx_ring->max_rx_process_cnt = s_max_rx_process_cnt;
+                } else {
+                        rx_ring->max_rx_process_cnt = s_max_rx_process_cnt >> 1;
+                }
+        }
 
 	RTMP_SEM_UNLOCK(lock);
 
@@ -3049,7 +3094,14 @@ BOOLEAN pci_rx_event_dma_done_handle(RTMP_ADAPTER *pAd, UINT8 resource_idx)
 
 	return bReschedule;
 }
+/*
+static VOID wq_tx_dma_done_func(struct work_struct *work) {
+	struct mtk_data_task *task = container_of(work, struct mtk_data_task, work);
 
+	struct pci_hif_chip *hif_chip = work->hif_chip;
+	work->work_func((unsigned long)hif_chip);	
+}
+*/
 /*generic pcie hook func*/
 /*
 *
@@ -3113,7 +3165,6 @@ static VOID pci_tx_dma_done_func(unsigned long data)
 	mt_int_enable(pAd, pci_hif_chip, int_mask);
 	RTMP_INT_UNLOCK(&pci_hif_chip->LockInterrupt, flags);
 }
-
 /*
 *
 */
@@ -5217,6 +5268,14 @@ static NDIS_STATUS pci_init_task_group(void *hdev_ctrl)
 
 		if (cap->hif_tm == TASKLET_METHOD) {
 			hif_chip->schedule_task_ops = &tasklet_schedule_ops;
+			/*
+			task_group->rx_workq = alloc_workqueue("napi_mtk", WQ_UNBOUND | WQ_SYSFS, WQ_UNBOUND_MAX_ACTIVE);
+			if (!task_group->rx_workq)
+				return NDIS_STATUS_FAILURE;
+			task_group->rx_data_done_task.hif_chip = hif_chip;
+			task_group->rx_data_done_task.work_func = pci_tx_dma_done_func;
+			INIT_WORK(&task_group->rx_data_done_task.work, wq_tx_dma_done_func);
+			*/
 			RTMP_OS_TASKLET_INIT(NULL, &task_group->tx_dma_done_task, pci_tx_dma_done_func, (unsigned long)hif_chip);
 			RTMP_OS_TASKLET_INIT(NULL, &task_group->rx_data_done_task, pci_rx_data_done_func, (unsigned long)hif_chip);
 			RTMP_OS_TASKLET_INIT(NULL, &task_group->rx_event_done_task, pci_rx_event_done_func, (unsigned long)hif_chip);
