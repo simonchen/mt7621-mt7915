@@ -183,6 +183,8 @@ function index()
 	entry({"admin", "network", "wifi", "apcli_connect"}, call("apcli_connect")).leaf = true
 	entry({"admin", "network", "wifi", "apcli_scan"}, call("apcli_scan")).leaf = true;
 	entry({"admin", "network", "wifi", "apcli_scan_req"}, call("apcli_scan_req")).leaf = true;
+
+	entry({"admin", "network", "wifi", "rate"}, call("action_wifi_rate")).leaf = true;
 end
 
 function dev_cfg(devname)
@@ -904,4 +906,60 @@ function apcli_disconnect(dev, vif)
 	os.execute("iwpriv "..vifname.." set ApCliEnable=0")
 	os.execute("ifconfig "..vifname.." down")
 	__mtkwifi_save_apcli(devname)
+end
+
+function action_wifi_rate(vifname)
+    luci.http.prepare_content("text/event-stream; charset=utf-8")
+    luci.http.header("Content-Type", "text/event-stream; charset=utf-8")
+    luci.http.header("Cache-Control", "no-cache")
+    luci.http.header("Connection", "keep-alive")
+
+    local nixio = require "nixio"
+    local max_ms = 500
+    local last_time = nil
+    local last_tx = 0
+    local last_rx = 0
+
+    -- luci.http.write("vifname="..vifname)
+    luci.http.write("\n")
+    io.flush()
+
+        while true do
+            local sec, usec = nixio.gettimeofday()
+            local current_time = sec + (usec / 1000000)
+            local stat = mtkwifi.get_vif_stat(vifname)
+            
+            if stat and stat["Bytes Sent"] and stat["Bytes Received"] then
+                local tx_total = tonumber(stat["Bytes Sent"])
+                local rx_total = tonumber(stat["Bytes Received"])
+                local tx_rate = 0
+                local rx_rate = 0
+
+                if last_time ~= nil then
+                    local time_delta = current_time - last_time
+                    if time_delta > 0 then
+                        tx_rate = math.max(0, (tx_total - last_tx) / time_delta)
+                        rx_rate = math.max(0, (rx_total - last_rx) / time_delta)
+                    end
+                end
+
+                last_time = current_time
+                last_tx = tx_total
+                last_rx = rx_total
+
+                local json_data = string.format(
+                    '{"tx_total":%.0f,"rx_total":%.0f,"tx_rate":%.2f,"rx_rate":%.2f}',
+                    tx_total, rx_total, tx_rate, rx_rate
+                )
+
+                -- luci.http.write("data: " .. json_data .. "\n\n")
+                -- luci.http.close()
+                io.write("data: " .. json_data .. "\n\n")
+                io.flush()
+            end
+
+            nixio.nanosleep(0, max_ms * 1000 * 1000)
+        end
+
+    -- pcall(get_rate)
 end

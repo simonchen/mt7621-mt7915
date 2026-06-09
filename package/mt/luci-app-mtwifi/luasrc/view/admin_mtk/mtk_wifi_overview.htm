@@ -18,6 +18,7 @@ local mtkwifi = require("mtkwifi")
 local mtkwifis = require("mtkwifis")
 local devs = mtkwifi.get_all_devs()
 
+local pcall_vifnames = {}
 local allowed_keys = {"Band", "CurrentTemperature", "RSSI", "CurrChannel"};
 local function has_value(tab, val)
     for _, value in ipairs(tab) do
@@ -166,6 +167,7 @@ const monitor_<%=dev_idx%> = new window.NetworkMonitor('monitor_<%=dev_idx%>', {
 						<% end %>
 					</td>
 <%
+table.insert(pcall_vifnames, vif.vifname)
 local stat = mtkwifi.get_vif_stat(vif.vifname) or {}
 %>
 					<td id="vif_stat_<%=vif.vifname%>" name="vif_stat" monitor_name="monitor_<%=dev_idx%>" class="cbi-value-field" style="opacity:1;min-width:100px;text-align:center !important;vertical-align:middle; text-align:left; padding:3px">
@@ -491,8 +493,14 @@ var mixBut = document.getElementById("mixBut");
 mixBut.addEventListener("click", Start);
 timer = false;
 
+const _MAX_POLL_INTERVAL = 5000;
+var __last_proc_done = true;
 function Start(){
-	timer = setInterval(a, 2000);
+	timer = setInterval(function() {
+		if (!__last_proc_done) return;	
+		__last_proc_proc = false;	
+		a();
+	}, _MAX_POLL_INTERVAL);
 	mixBut.removeEventListener("click", Start);
 	mixBut.addEventListener("click", Stop);
 	mixBut.value = "Stop";
@@ -520,6 +528,7 @@ function a(){
 				var cur_content = $(elem).html();
 				var content = html.find(hid).html();
 				$(elem).html(content);
+/*
 				if (mn && mn.length > 0) {
 					var c_ts = cur_content.match(/timestamp:\s*(\d+)/i);
 					var c_txm = cur_content.match(/Bytes Sent:\s*<\/span><span[^>]*>(\d+)<\/span>/i);
@@ -532,13 +541,15 @@ function a(){
 					const c_rx = c_rxm ? c_rxm[1] : 0;
 					const tx = txm ? txm[1] : 0;
 					const rx = rxm ? rxm[1] : 0;
-					const dt = (ts ? ts[1] : 2) - (c_ts ? c_ts[1] : 1);
+					var dt = (ts ? ts[1] : 0) - (c_ts ? c_ts[1] : 0);
+					if (dt < _MAX_POLL_INTERVAL/1000) dt = _MAX_POLL_INTERVAL/1000;
 					eval(mn + '.pushRx(' + (rx - c_rx)/dt + ')');
 					eval(mn + '.pushTx(' + (tx - c_tx)/dt + ')');
 					eval(mn + '.updateTotalRx(' + rx + ')');
 					eval(mn + '.updateTotalTx(' + tx + ')');
-					//console.log("=========mt7915: rx=" + (rx-c_rx)/dt + ", tx=" + (tx - c_tx)/dt);
+					//console.log("=========mt7915: dt=" + dt + ", rx=" + (rx-c_rx)/dt + ", tx=" + (tx - c_tx)/dt);
 				}
+*/
 			});
 			
 			var apcliSignalElements = document.querySelectorAll('[name="apcli_signal"]');
@@ -554,8 +565,48 @@ function a(){
                                 var content = html.find(hid).html();
                                 $(elem).html(content);
 			});
+
+			__last_proc_done = true;
 		});
 	}
+}
+
+var baseUrl = '<%=luci.dispatcher.build_url("admin", "network", "wifi", "rate")%>/';
+var ssePool = [];
+
+function startMonitorVif(vifname, i) {
+    var evtSrc = new EventSource(baseUrl + vifname);
+    ssePool.push(evtSrc);
+    evtSrc.onmessage = function(event) {
+        try {
+            var data = JSON.parse(event.data);
+            eval('monitor_' + i + '.pushRx(' + data.rx_rate + ')');
+            eval('monitor_' + i + '.pushTx(' + data.tx_rate + ')');
+            eval('monitor_' + i + '.updateTotalRx(' + data.rx_total + ')');
+            eval('monitor_' + i + '.updateTotalTx(' + data.tx_total + ')');
+            //console.log("===========mt7915: idx=" + i + ", vifname=" + vifname + ", rx_rate=" + data.rx_rate.toFixed(2) + ", tx_rate=" + data.tx_rate.toFixed(2) + ", rx_total=" + data.rx_total + ", tx_total=" + data.tx_total);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+}
+
+function startMonitor() {
+    var vifnames = [
+        <% if pcall_vifnames then 
+            for i, vifname in ipairs(pcall_vifnames) do %>
+                [ "<%=vifname%>", <%=i%> ]<%= i < #pcall_vifnames and "," or "" %>
+            <% end 
+        end %>
+    ];
+
+    vifnames.forEach(function(item) { 
+        startMonitorVif(item[0], item[1]); 
+    });
+}
+
+function endMonitor() {
+    ssePool.forEach(function(evt) { evt.close(); });
 }
 
 window.onload = function() {
@@ -566,7 +617,13 @@ window.onload = function() {
 		document.getElementById("container").style.visibility = "visible";
 	}, 100);
   Start(); // force-start to refresh !
+  startMonitor(); // wifi rate
 }
+
+window.onbeforeunload = function() {
+    endMonitor();
+}
+
 </script>
 
 <%+footer%>
