@@ -2623,6 +2623,7 @@ static struct {
 	{"DlRpsThd",			Show_DlRpsThd_Proc_hack}, // Newly added by simonchen
 	{"UlRpsThd",			Show_UlRpsThd_Proc_hack}, // Newly added by simonchen
 	{"stainfo",			Show_MacTable_Proc_hack},
+	{"rate",			Show_Rate_Proc_hack},
 	{"partial_mib_info",		Show_Mib_Info_Proc},
 #ifdef TXRX_STAT_SUPPORT
 	{"sta_stat",			Show_Sta_Stat_Proc},
@@ -3241,7 +3242,8 @@ INT RTMPAPPrivIoctlShow(
 				if (rtstrcasecmp(this_char, "stainfo") == TRUE ||
 					rtstrcasecmp(this_char, "DlRpsThd") == TRUE || 
 					rtstrcasecmp(this_char, "UlRpsThd") == TRUE ||
-					rtstrcasecmp(this_char, "fake_hash_roller") == TRUE) { // simonchen [hacking the string pointer]
+					rtstrcasecmp(this_char, "fake_hash_roller") == TRUE ||
+					rtstrcasecmp(this_char, "rate") == TRUE) { // simonchen [hacking the string pointer]
 					RTMP_VALUE v;
 					RTMP_STRING *tmp = value;
 					v.arg = tmp;

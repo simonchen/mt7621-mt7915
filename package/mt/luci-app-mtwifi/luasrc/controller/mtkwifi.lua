@@ -927,7 +927,7 @@ function action_wifi_rate(vifname)
         while true do
             local sec, usec = nixio.gettimeofday()
             local current_time = sec + (usec / 1000000)
-            local stat = mtkwifi.get_vif_stat(vifname)
+            local stat = mtkwifi.get_vif_rate(vifname)
             
             if stat and stat["Bytes Sent"] and stat["Bytes Received"] then
                 local tx_total = tonumber(stat["Bytes Sent"])

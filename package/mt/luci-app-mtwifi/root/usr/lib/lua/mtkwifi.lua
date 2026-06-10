@@ -1011,4 +1011,19 @@ function mtkwifi.get_vif_stat(vifname)
     return parse_raw_stat(raw)
 end
 
+function mtkwifi.get_vif_rate(vifname)
+    if not vifname or not string.match(vifname, "^[A-Za-z0-9_]+$") then
+        return nil, "Invalid interface name"
+    end
+
+    local p = io.popen("iwpriv " .. vifname .. " show rate", "r")
+    if not p then return nil, "Failed to run iwpriv" end
+
+    local raw = p:read("*all")
+    p:close()
+
+    if not raw or raw == "" then return nil, "No data" end
+    return parse_raw_stat(raw)
+end
+
 return mtkwifi

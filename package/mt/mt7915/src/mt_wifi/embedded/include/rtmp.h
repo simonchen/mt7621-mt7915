@@ -11995,6 +11995,7 @@ INT Show_MacTable_Proc_hack(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
 INT Show_DlRpsThd_Proc_hack(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
 INT Show_UlRpsThd_Proc_hack(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
 INT Show_FakeHashRoller_Proc_hack(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
+INT Show_Rate_Proc_hack(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
 INT Show_Mib_Info_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
 
 #ifdef ACL_BLK_COUNT_SUPPORT

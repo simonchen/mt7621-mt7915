@@ -391,6 +391,14 @@ static UINT32 debug_cat = DBG_CAT_ALL;
     Return:
     ==========================================================================
 */
+#ifdef MTWF_LOG
+#undef MTWF_LOG
+#endif
+#define MTWF_LOG(Category, SubCategory, Level, Args...) \
+        do { \
+                printk Args; \
+        } while(0)
+
 INT show_driverinfo_proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 {
 #ifdef CONFIG_AP_SUPPORT
@@ -411,6 +419,7 @@ INT show_driverinfo_proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 
 	return TRUE;
 }
+#define MTWF_LOG(Category, SubCategory, Level, Fmt)
 
 #if defined(BB_SOC) && defined(TCSUPPORT_WLAN_SW_RPS)
 extern int (*ecnt_set_wifi_rps_hook)(int RxOn, int WLanCPU, int TxOn, int LanCPU);
@@ -8455,7 +8464,7 @@ static INT dump_mac_table(RTMP_ADAPTER *pAd, UINT32 ent_type, BOOLEAN bReptCli, 
 			sgi = rTxStatResult.rEntryTxRate.ShortGI;
 			stbc = ((RawData >> 10) & 0x1);
 			nss = rTxStatResult.rEntryTxRate.VhtNss;
-#if 1	//mtk patch 20201211
+#ifndef NEW_FIRMWARE_2022	//mtk patch 20201211 // simonchen
             max_mode = pEntry->MaxHTPhyMode.field.MODE;
             max_bw =    pEntry->MaxHTPhyMode.field.BW;
             max_mcs =  pEntry->MaxHTPhyMode.field.MCS;
@@ -8931,6 +8940,62 @@ INT Show_FakeHashRoller_Proc_hack(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
         os_free_mem(msg);
 
         return ret;
+}
+
+INT Show_Rate_Proc_hack(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+{
+        PRTMP_VALUE v = (PRTMP_VALUE)arg;
+        RTMP_IOCTL_INPUT_STRUCT *wrq = v->wrq;
+        INT ret = TRUE;
+        arg = v->arg; // hacking
+
+        RTMP_STRING *msg;
+        POS_COOKIE pObj = (POS_COOKIE) pAd->OS_Cookie;
+        struct wifi_dev *wdev = get_wdev_by_ioctl_idx_and_iftype(pAd, pObj->ioctl_if, pObj->ioctl_if_type);
+        UINT8 ucBand = BAND0;
+        UCHAR index = 0;
+
+        UINT msg_len = 1024;
+        ULONGLONG txPackets = 0, rxPackets = 0, txBytes = 0, rxBytes = 0;
+
+        os_alloc_mem(pAd, (UCHAR **)&msg, msg_len);
+
+        if (msg == NULL)
+                return ret;
+
+        if (wdev == NULL)
+                return ret;
+
+        ucBand = HcGetBandByWdev(wdev);
+
+        memset(msg, 0x00, msg_len);
+        snprintf(msg, msg_len, "\n");
+        snprintf(msg + strlen(msg), msg_len - strlen(msg), "Band              = %d\n", ucBand); // simonchen
+
+        for (index = 0; index < pAd->ApCfg.BssidNum; index++) {
+                if (HcGetBandByWdev(&pAd->ApCfg.MBSSID[index].wdev) != ucBand)
+                        continue; // simonchen // only make stats. by BAND.
+                rxPackets += pAd->ApCfg.MBSSID[index].RxCount;
+                txPackets += pAd->ApCfg.MBSSID[index].TxCount;
+                rxBytes += pAd->ApCfg.MBSSID[index].ReceivedByteCount;
+                txBytes += pAd->ApCfg.MBSSID[index].TransmittedByteCount;
+        }
+
+        snprintf(msg + strlen(msg), msg_len - strlen(msg), "Packets Received       = %llu\n", rxPackets);
+        snprintf(msg + strlen(msg), msg_len - strlen(msg), "Packets Sent           = %llu\n", txPackets);
+        snprintf(msg + strlen(msg), msg_len - strlen(msg), "Bytes Received         = %llu\n", rxBytes);
+        snprintf(msg + strlen(msg), msg_len - strlen(msg), "Bytes Sent             = %llu\n", txBytes);
+        snprintf(msg + strlen(msg), msg_len - strlen(msg), "\n");
+
+        /* Copy the information into the user buffer */
+	if (wrq) {
+                wrq->u.data.length = strlen(msg);
+                if (copy_to_user(wrq->u.data.pointer, msg, wrq->u.data.length))
+                        MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: copy_to_user() fail\n", __func__));
+	}
+        os_free_mem(msg);
+
+	return ret;
 }
 
 INT Show_DlRpsThd_Proc_hack(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
