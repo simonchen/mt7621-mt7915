@@ -35,7 +35,7 @@
     u32 __hash_val = 0;                                         \
     struct net_device *__dev = (struct net_device *)(net_dev);  \
     \
-    if (likely(__dev)) {                                        \
+    if (likely(__dev && __dev->_rx)) {                          \
         struct rps_map *__map = __dev->_rx->rps_map;            \
         u32 __ep_ro = (__map) ? __map->len : 0;                \
         \
@@ -46,10 +46,12 @@
         u32 __mask  = (__ep_ro == 4 || __ep_ro == 3) ? 3  : 1;  \
         u32 __shift = (__ep_ro == 4 || __ep_ro == 3) ? 30 : 31; \
         \
-        __hash_val = (((u32)(roller) >> (31 - __builtin_clz(pkts))) & __mask) << __shift; \
-    }                                                           \
+        __hash_val = ((__this_cpu_read(roller) >> (31 - __builtin_clz(pkts))) & __mask) << __shift; \
+	__this_cpu_add(roller, 1);			\
+    }   	\
     __hash_val;                                                 \
 })
+DEFINE_PER_CPU(UINT, fake_hash_roller) = 0;
 
 /*local func.*/
 /*internal io read/write*/
@@ -1534,7 +1536,6 @@ done:
 	return skb_pkt;
 }
 
-UINT fake_hash_roller ____cacheline_aligned = 0;
 static PNDIS_PACKET pci_get_pkt_dynamic_page_ddone(
 	struct _RTMP_ADAPTER *pAd,
 	BOOLEAN *pbReschedule,
@@ -1653,7 +1654,7 @@ static PNDIS_PACKET pci_get_pkt_dynamic_page_ddone(
 					//RTPKT_TO_OSPKT(pRxPacket)->hash = smp_processor_id()+1;
 					// simonchen (switch cpu by every 512 pkts)
 					//skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 10 & 1) << 31, PKT_HASH_TYPE_L4);
-					skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller++, pAd->net_dev, POLL_PKTS_64), PKT_HASH_TYPE_L4);
+					skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller, pAd->net_dev, POLL_PKTS_64), PKT_HASH_TYPE_L4);
 			}
 
 #endif
@@ -1854,7 +1855,7 @@ static PNDIS_PACKET pci_get_pkt_dynamic_page_io(
 #ifdef RX_RPS_SUPPORT
 		if (pRxPacket) { // simonchen
 			//skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 8 & 1) << 31, PKT_HASH_TYPE_L4);
-			skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller++, pAd->net_dev, POLL_PKTS_256), PKT_HASH_TYPE_L4);
+			skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller, pAd->net_dev, POLL_PKTS_256), PKT_HASH_TYPE_L4);
 		}
 #endif
 	} else {
@@ -1996,7 +1997,7 @@ static PNDIS_PACKET pci_get_pkt_dynamic_slab_ddone(
 #ifdef RX_RPS_SUPPORT
                 if (pRxPacket) { // simonchen
                         //skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 6 & 1) << 31, PKT_HASH_TYPE_L4);
-			skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller++, pAd->net_dev, POLL_PKTS_64), PKT_HASH_TYPE_L4);
+			skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller, pAd->net_dev, POLL_PKTS_64), PKT_HASH_TYPE_L4);
                 }
 #endif
 	} else {
@@ -2160,7 +2161,7 @@ static PNDIS_PACKET pci_get_pkt_dynamic_slab_io(
 #ifdef RX_RPS_SUPPORT
                 if (pRxPacket) { // simonchen
                         //skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 6 & 1) << 31, PKT_HASH_TYPE_L4);
-			skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller++, pAd->net_dev, POLL_PKTS_64), PKT_HASH_TYPE_L4);
+			skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller, pAd->net_dev, POLL_PKTS_64), PKT_HASH_TYPE_L4);
                 }
 #endif
 	} else {

@@ -8910,36 +8910,47 @@ INT Show_MacTable_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 	return dump_mac_table(pAd, ent_type, FALSE, NULL);
 }
 
-extern UINT32 fake_hash_roller;
+DECLARE_PER_CPU(UINT, fake_hash_roller);
 INT Show_FakeHashRoller_Proc_hack(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 {
-        PRTMP_VALUE v = (PRTMP_VALUE)arg;
-        RTMP_IOCTL_INPUT_STRUCT *wrq = v->wrq;
-        INT ret = TRUE;
-        arg = v->arg; // hacking
+    PRTMP_VALUE v = (PRTMP_VALUE)arg;
+    RTMP_IOCTL_INPUT_STRUCT *wrq = v->wrq;
+    INT ret = TRUE;
+    int cpu; 
 
-        UINT32 TotalLen = sizeof(CHAR) * 32;
-        char* msg;
-        os_alloc_mem(NULL, (UCHAR **)&msg, TotalLen);
+    arg = v->arg; // hacking
 
-        if (msg == NULL) {
-                MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s():Alloc memory failed\n", __func__));
-                return TRUE;
+    UINT32 TotalLen = sizeof(CHAR) * 512;
+    char* msg;
+
+    os_alloc_mem(NULL, (UCHAR **)&msg, TotalLen);
+    if (msg == NULL) {
+        MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s():Alloc memory failed\n", __func__));
+        return TRUE;
+    }
+
+    memset(msg, 0, TotalLen);
+
+    snprintf(msg, TotalLen, "%s", "\n");
+
+    for_each_online_cpu(cpu) {
+        UINT local_val = per_cpu(fake_hash_roller, cpu);
+
+        snprintf(msg + strlen(msg), TotalLen - strlen(msg),
+                 "CPU_%d:%u ", cpu, local_val);
+    }
+
+    snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s", "\n");
+
+    if (wrq) {
+        wrq->u.data.length = strlen(msg);
+        if (copy_to_user(wrq->u.data.pointer, msg, wrq->u.data.length)) {
+            MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: copy_to_user() fail\n", __func__));
         }
+    }
 
-        memset(msg, 0, TotalLen);
-        snprintf(msg, TotalLen, "%s", "\n");
-
-        snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%u", fake_hash_roller);
-
-        if (wrq) {
-                wrq->u.data.length = strlen(msg);
-                if (copy_to_user(wrq->u.data.pointer, msg, wrq->u.data.length))
-                        MTWF_LOG(DBG_CAT_CFG, DBG_SUBCAT_ALL, DBG_LVL_OFF, ("%s: copy_to_user() fail\n", __func__));
-        }
-        os_free_mem(msg);
-
-        return ret;
+    os_free_mem(msg);
+    return ret;
 }
 
 INT Show_Rate_Proc_hack(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
