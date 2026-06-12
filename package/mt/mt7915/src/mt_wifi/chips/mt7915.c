@@ -11859,8 +11859,8 @@ static VOID mt7915_chipCap_init(struct _RTMP_ADAPTER *pAd, RTMP_CHIP_CAP *chip_c
 	chip_cap->cmd_padding_len = 0;
 	/* ppdu_caps */
 	chip_cap->ppdu.TxAggLimit = 64;
-	chip_cap->ppdu.non_he_tx_ba_wsize = 32;//BA_WIN_SZ_64; // simonchen
-	chip_cap->ppdu.non_he_rx_ba_wsize = 32;//BA_WIN_SZ_64; // simonchen
+	chip_cap->ppdu.non_he_tx_ba_wsize = BA_WIN_SZ_64;
+	chip_cap->ppdu.non_he_rx_ba_wsize = BA_WIN_SZ_64;
 	chip_cap->ppdu.he_tx_ba_wsize = BA_WIN_SZ_64;//BA_WIN_SZ_256; // simonchen
 	chip_cap->ppdu.he_rx_ba_wsize = BA_WIN_SZ_64;//BA_WIN_SZ_256; // simonchen
 	chip_cap->ppdu.max_amsdu_len = 0;//MPDU_7991_OCTETS; // disable amsdu // simonchen
