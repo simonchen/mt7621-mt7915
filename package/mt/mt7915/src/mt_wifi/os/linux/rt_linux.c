@@ -903,7 +903,9 @@ int RtmpOSFileRead(RTMP_OS_FD osfd, char *pDataPtr, int readLen)
 
 int RtmpOSFileWrite(RTMP_OS_FD osfd, char *pDataPtr, int writeLen)
 {
-#if (KERNEL_VERSION(4, 1, 0) > LINUX_VERSION_CODE)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
+	return kernel_write(osfd, pDataPtr, (size_t)writeLen, &osfd->f_pos);
+#elif (KERNEL_VERSION(4, 1, 0) > LINUX_VERSION_CODE)
 	return osfd->f_op->write(osfd, pDataPtr, (size_t) writeLen, &osfd->f_pos);
 #elif (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0))
 	return __kernel_write(osfd, pDataPtr, (size_t) writeLen, &osfd->f_pos);
@@ -938,10 +940,14 @@ static inline void __RtmpOSFSInfoChange(OS_FS_INFO *pOSFSInfo, BOOLEAN bSet)
 		/* pOSFSInfo->fsgid = (int)(current_fsgid()); */
 #endif
 #endif
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 		pOSFSInfo->fs = get_fs();
 		set_fs(KERNEL_DS);
+#endif
 	} else {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 		set_fs(pOSFSInfo->fs);
+#endif
 #if (KERNEL_VERSION(2, 6, 29) > LINUX_VERSION_CODE)
 		current->fsuid = pOSFSInfo->fsuid;
 		current->fsgid = pOSFSInfo->fsgid;
@@ -2081,9 +2087,10 @@ VOID RtmpDrvAllMacPrint(
 
 	if (!msg)
 		return;
-
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	orig_fs = get_fs();
 	set_fs(KERNEL_DS);
+#endif
 	/* open file */
 	file_w = filp_open(fileName, O_WRONLY | O_CREAT, 0);
 
@@ -2101,6 +2108,9 @@ VOID RtmpDrvAllMacPrint(
 				macValue = *pBufMac++;
 				sprintf(msg, "%04x = %08x\n", macAddr, macValue);
 				/* write data to file */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
+			kernel_write(file_w, msg, strlen(msg), &file_w->f_pos);
+#else
 #if (KERNEL_VERSION(4, 1, 0) > LINUX_VERSION_CODE)
 			if (file_w->f_op->write) {
 				file_w->f_op->write(file_w, msg, strlen(msg), &file_w->f_pos);
@@ -2114,6 +2124,7 @@ VOID RtmpDrvAllMacPrint(
 #else
 			__vfs_write(file_w, msg, strlen(msg), &file_w->f_pos);
 #endif
+#endif
 				MTWF_LOG(DBG_CAT_INIT, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s", msg));
 				macAddr += AddrStep;
 			}
@@ -2124,7 +2135,9 @@ VOID RtmpDrvAllMacPrint(
 		filp_close(file_w, NULL);
 	}
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	set_fs(orig_fs);
+#endif
 	os_free_mem(msg);
 }
 
@@ -2146,9 +2159,10 @@ VOID RtmpDrvAllE2PPrint(
 
 	if (!msg)
 		return;
-
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	orig_fs = get_fs();
 	set_fs(KERNEL_DS);
+#endif
 	/* open file */
 	file_w = filp_open(fileName, O_WRONLY | O_CREAT, 0);
 
@@ -2165,6 +2179,9 @@ VOID RtmpDrvAllE2PPrint(
 				eepValue = *pMacContent;
 				sprintf(msg, "%08x = %04x\n", eepAddr, eepValue);
 				/* write data to file */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
+				kernel_write(file_w, msg, strlen(msg), &file_w->f_pos);
+#else
 #if (KERNEL_VERSION(4, 1, 0) > LINUX_VERSION_CODE)
 				if (file_w->f_op->write) {
 					file_w->f_op->write(file_w, msg, strlen(msg), &file_w->f_pos);
@@ -2178,6 +2195,7 @@ VOID RtmpDrvAllE2PPrint(
 #else
 				__vfs_write(file_w, msg, strlen(msg), &file_w->f_pos);
 #endif
+#endif
 				MTWF_LOG(DBG_CAT_INIT, DBG_SUBCAT_ALL, DBG_LVL_ERROR, ("%s", msg));
 				eepAddr += AddrStep;
 				pMacContent += (AddrStep >> 1);
@@ -2190,7 +2208,9 @@ VOID RtmpDrvAllE2PPrint(
 		filp_close(file_w, NULL);
 	}
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	set_fs(orig_fs);
+#endif
 	os_free_mem(msg);
 }
 
@@ -2204,8 +2224,10 @@ VOID RtmpDrvAllRFPrint(
 	RTMP_STRING *fileName = "RFDump.txt";
 	mm_segment_t orig_fs;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	orig_fs = get_fs();
 	set_fs(KERNEL_DS);
+#endif
 	/* open file */
 	file_w = filp_open(fileName, O_WRONLY | O_CREAT, 0);
 
@@ -2217,6 +2239,9 @@ VOID RtmpDrvAllRFPrint(
 		if (file_w->f_op) {
 			file_w->f_pos = 0;
 			/* write data to file */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0))
+		        kernel_write(file_w, pBuf, BufLen, &file_w->f_pos);
+#else
 #if (KERNEL_VERSION(4, 1, 0) > LINUX_VERSION_CODE)
 			if (file_w->f_op->write) {
 				file_w->f_op->write(file_w, pBuf, BufLen, &file_w->f_pos);
@@ -2231,12 +2256,15 @@ VOID RtmpDrvAllRFPrint(
 #else
 			__vfs_write(file_w, pBuf, BufLen, &file_w->f_pos);
 #endif
+#endif
 		}
 
 		filp_close(file_w, NULL);
 	}
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 18, 0)
 	set_fs(orig_fs);
+#endif
 }
 
 
@@ -2471,6 +2499,7 @@ BOOLEAN RtmpOsStatsAlloc(
 }
 
 
+DECLARE_PER_CPU(UINT, fake_hash_roller);
 /*
  * ========================================================================
  * Routine Description:
@@ -2502,6 +2531,12 @@ VOID RtmpOsPktRcvHandle(PNDIS_PACKET pNetPkt, VOID *napi)
 
 #endif /* CONFIG_CSO_SUPPORT */
 
+#ifdef RX_RPS_SUPPORT
+	if (skb && !skb_get_hash_raw(skb)) {
+		skb_set_hash(skb, GET_TARGET_CPU_HASH(fake_hash_roller, skb->dev, POLL_PKTS_64), PKT_HASH_TYPE_L4);
+		skb->napi_id = MTK_NAPI_ID;
+	}
+#endif
 	if (napi && in_serving_softirq())
 		napi_gro_receive((struct napi_struct *)napi, skb);
 	else
@@ -2691,6 +2726,13 @@ INT RtmpOSNotifyRawData(
 	skb->pkt_type = PACKET_OTHERHOST;
 	skb->protocol = htons(protocol);
 	memset(skb->cb, 0, sizeof(skb->cb));
+
+#ifdef RX_RPS_SUPPORT
+        if (skb && !skb_get_hash_raw(skb)) {
+                skb_set_hash(skb, GET_TARGET_CPU_HASH(fake_hash_roller, skb->dev, POLL_PKTS_64), PKT_HASH_TYPE_L4);
+                skb->napi_id = MTK_NAPI_ID;
+        }
+#endif
 
 	if (napi && in_serving_softirq())
 		napi_gro_receive((struct napi_struct *)napi, skb);
@@ -5373,8 +5415,8 @@ void os_system_tx_queue_dump(PNET_DEV dev)
 			if (skb->head) {
 				p = virt_to_head_page(skb->head);
 				page_size = PAGE_SIZE << compound_order(p);
-				printk("%s(): index:%d, page:%p ,rfcnt:%d, page size:%zu, order:%u, dtor:%u\n", __func__, k++, p,
-					OS_PAGE_REF(p), page_size, (unsigned int) compound_order(p), (unsigned int) p->compound_dtor);
+				//printk("%s(): index:%d, page:%p ,rfcnt:%d, page size:%zu, order:%u, dtor:%u\n", __func__, k++, p,
+				//	OS_PAGE_REF(p), page_size, (unsigned int) compound_order(p), (unsigned int) p->compound_dtor);
 			}
 			skb = skb->next;
 		}

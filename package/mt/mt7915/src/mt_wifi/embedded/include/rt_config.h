@@ -484,5 +484,6 @@
 #include "mdvt.h"
 #endif
 
+#include "rps.h"
 
 #endif	/* __RT_CONFIG_H__ */

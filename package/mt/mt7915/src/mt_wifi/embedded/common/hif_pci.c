@@ -27,6 +27,10 @@
 #endif
 
 // simonchen - RPS Target CPU
+/*
+#ifndef MTK_NAPI_ID
+#define MTK_NAPI_ID 0xFFFF7915
+#endif
 #define POLL_PKTS_64 64
 #define POLL_PKTS_256 256
 #define POLL_PKTS_512 512
@@ -51,6 +55,7 @@
     }   	\
     __hash_val;                                                 \
 })
+*/
 DEFINE_PER_CPU(UINT, fake_hash_roller) = 0;
 
 /*local func.*/
@@ -1654,7 +1659,10 @@ static PNDIS_PACKET pci_get_pkt_dynamic_page_ddone(
 					//RTPKT_TO_OSPKT(pRxPacket)->hash = smp_processor_id()+1;
 					// simonchen (switch cpu by every 512 pkts)
 					//skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 10 & 1) << 31, PKT_HASH_TYPE_L4);
-					skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller, pAd->net_dev, POLL_PKTS_64), PKT_HASH_TYPE_L4);
+					if (!skb_get_hash_raw(RTPKT_TO_OSPKT(pRxPacket))) {
+						skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller, pAd->net_dev, POLL_PKTS_64), PKT_HASH_TYPE_L4);
+						RTPKT_TO_OSPKT(pRxPacket)->napi_id = MTK_NAPI_ID;
+					}
 			}
 
 #endif
@@ -1855,7 +1863,10 @@ static PNDIS_PACKET pci_get_pkt_dynamic_page_io(
 #ifdef RX_RPS_SUPPORT
 		if (pRxPacket) { // simonchen
 			//skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 8 & 1) << 31, PKT_HASH_TYPE_L4);
-			skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller, pAd->net_dev, POLL_PKTS_256), PKT_HASH_TYPE_L4);
+			if (!skb_get_hash_raw(RTPKT_TO_OSPKT(pRxPacket))) {
+				skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller, pAd->net_dev, POLL_PKTS_256), PKT_HASH_TYPE_L4);
+				RTPKT_TO_OSPKT(pRxPacket)->napi_id = MTK_NAPI_ID;
+			}
 		}
 #endif
 	} else {
@@ -1997,7 +2008,10 @@ static PNDIS_PACKET pci_get_pkt_dynamic_slab_ddone(
 #ifdef RX_RPS_SUPPORT
                 if (pRxPacket) { // simonchen
                         //skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 6 & 1) << 31, PKT_HASH_TYPE_L4);
-			skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller, pAd->net_dev, POLL_PKTS_64), PKT_HASH_TYPE_L4);
+			if (!skb_get_hash_raw(RTPKT_TO_OSPKT(pRxPacket))) {
+				skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller, pAd->net_dev, POLL_PKTS_64), PKT_HASH_TYPE_L4);
+				RTPKT_TO_OSPKT(pRxPacket)->napi_id = MTK_NAPI_ID;
+			}
                 }
 #endif
 	} else {
@@ -2161,7 +2175,10 @@ static PNDIS_PACKET pci_get_pkt_dynamic_slab_io(
 #ifdef RX_RPS_SUPPORT
                 if (pRxPacket) { // simonchen
                         //skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), (fake_hash_roller++ >> 6 & 1) << 31, PKT_HASH_TYPE_L4);
-			skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller, pAd->net_dev, POLL_PKTS_64), PKT_HASH_TYPE_L4);
+			if (!skb_get_hash_raw(RTPKT_TO_OSPKT(pRxPacket))) {
+				skb_set_hash(RTPKT_TO_OSPKT(pRxPacket), GET_TARGET_CPU_HASH(fake_hash_roller, pAd->net_dev, POLL_PKTS_64), PKT_HASH_TYPE_L4);
+				RTPKT_TO_OSPKT(pRxPacket)->napi_id = MTK_NAPI_ID;
+			}
                 }
 #endif
 	} else {
