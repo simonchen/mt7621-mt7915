@@ -919,9 +919,11 @@ function action_wifi_rate(vifname)
     local last_time = nil
     local last_tx = 0
     local last_rx = 0
+    local success
+    local start_time = os.time()
 
     -- luci.http.write("vifname="..vifname)
-    luci.http.write("\n")
+    luci.http.write("retry: 1000\n\n")
     io.flush()
 
         while true do
@@ -954,8 +956,17 @@ function action_wifi_rate(vifname)
 
                 -- luci.http.write("data: " .. json_data .. "\n\n")
                 -- luci.http.close()
+		success = pcall(function()
                 io.write("data: " .. json_data .. "\n\n")
                 io.flush()
+		end)
+		if not success then
+			break
+		end
+            end
+
+            if (os.time() - start_time) >= 30 then
+                    break
             end
 
             nixio.nanosleep(0, max_ms * 1000 * 1000)
