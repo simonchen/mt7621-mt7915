@@ -92,6 +92,8 @@ static VOID phyStateEventDispatcher(struct cmd_msg *msg, char *rsp_payload,
 {
 	UINT8 u1EventId = (*(UINT8 *)rsp_payload);
 
+	//printk(">>>>>>>>>> mt7915: %s: event:%d payload_len:%d\n", __func__, u1EventId, rsp_payload_len);
+
 	switch (u1EventId) {
 	case EVENT_PHY_STATE_CONTENTION_RX_PHYRATE:
 		ShowPhyStateLastRxRate(msg, rsp_payload, rsp_payload_len);
@@ -426,7 +428,7 @@ INT32 MtCmdPhyGetRxRate(
 	SET_CMD_ATTR_MCU_DEST(attr, HOST2N9);
 	SET_CMD_ATTR_TYPE(attr, EXT_CID);
 	SET_CMD_ATTR_EXT_TYPE(attr, EXT_CMD_ID_PHY_STAT_INFO);
-	SET_CMD_ATTR_CTRL_FLAGS(attr, INIT_CMD_QUERY_AND_WAIT_RSP);
+	SET_CMD_ATTR_CTRL_FLAGS(attr, INIT_CMD_QUERY_AND_WAIT_RSP|CMD_FLAG_CMD_LEN_VAR_MASK);
 	SET_CMD_ATTR_RSP_WAIT_MS_TIME(attr, 0);
 	SET_CMD_ATTR_RSP_EXPECT_SIZE(attr, sizeof(*prRxRateInfo));
 	SET_CMD_ATTR_RSP_WB_BUF_IN_CALBK(attr, prRxRateInfo);
