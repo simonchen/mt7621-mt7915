@@ -2955,8 +2955,10 @@ INT ap_tx_pkt_handle(RTMP_ADAPTER *pAd, struct wifi_dev *wdev, TX_BLK *tx_blk)
 	pEntry = &pAd->MacTab.Content[RTMP_GET_PACKET_WCID(tx_blk->pPacket)];
 #ifdef MT7626_REDUCE_TX_OVERHEAD
 #else
+	/* frame prepartion, no counting in here. // simonchen
 	INC_COUNTER64(pEntry->TxPackets);
 	pEntry->TxBytes += tx_blk->SrcBufLen;
+	*/
 #endif
 	pEntry->OneSecTxBytes += tx_blk->SrcBufLen;
 #ifdef ANTENNA_DIVERSITY_SUPPORT

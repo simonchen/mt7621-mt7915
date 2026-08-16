@@ -289,8 +289,10 @@ end
 			<thead>
 				<tr style="text-align:left">
 					<th>MAC-Address</th>
+					<th><div class="a1">Connected time</div></th>
 					<th><div class="a1">Hostname</div></th>
 					<th><div class="a1">IPv4 (DHCP)</div></th>
+					<th><div class="a1">Total traffic (T/R)</div></th>
 					<th><div class="b1">Rate (T/R)</div></th>
 					<th><div class="b1">RSSI - 0/1/2/3</div></th>
 					<th><div class="b1">BW (T/R)</div></th>
@@ -302,6 +304,17 @@ end
 			</thead>
 			<tbody>
 <%
+local function formatSeconds(s)
+    s = tonumber(s) or 0
+    return string.format("%02d:%02d:%02d", math.floor(s/3600), math.floor((s%3600)/60), math.floor(s%60))
+end
+
+local function formatBytes(b)
+    if (tonumber(b) or 0) < 1 then return "0.00 B" end
+    local i = math.min(math.floor(math.log(b) / math.log(1024)), 4)
+    return string.format("%.2f %s", b / (1024 ^ i), ({"B", "KB", "MB", "GB", "TB"})[i + 1])
+end
+
 local sta_table = mtkwifis.refresh_sta_table() or {}
 
 for MAC, info in pairs(sta_table) do
@@ -314,11 +327,16 @@ for MAC, info in pairs(sta_table) do
     local Wcid    = info.wcid or "0"
     local Psmode  = (info.ps_mode == 1) and "Power save" or "Active"
     local Rate    = info.rate or "-"
+    local RxBytes = info.rx_bytes or "0"
+    local TxBytes = info.tx_bytes or "0"
+    local ConnectedTime = info.connected_time or "0"
 %>
-<tr>
+<tr>    
     <td><div class="m1"><%=MAC%></div></td>
+    <td><div class="a1"><%=formatSeconds(ConnectedTime)%></div></td>
     <td><div class="a1"><%=Host%></div></td>
     <td><div class="a1"><%=IP%></div></td>
+    <td><div class="a1"><%=formatBytes(TxBytes)%>/<%=formatBytes(RxBytes)%></div></td>
     <td><div class="b1" id="Rate"><%=Rate%></div></td>
     <td><div class="b1"><%=RSSI%></div></td>
     <td><div class="b1"><%=BW%></div></td>

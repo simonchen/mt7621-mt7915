@@ -107,6 +107,12 @@ function mtkwifis.refresh_sta_table()
                     local single_rate = line:match("%d+")
                     sta_table[active_mac].rate = single_rate and (single_rate .. " Mbit/s") or "-"
                 end
+            elseif data_index == 15 then
+		sta_table[active_mac].rx_bytes = line:match("(%d+)")
+            elseif data_index == 16 then
+                sta_table[active_mac].tx_bytes = line:match("(%d+)")
+            elseif data_index == 17 then
+                sta_table[active_mac].connected_time = line:match("(%d+)")
                 active_mac = nil  
             end
         end

@@ -8690,6 +8690,9 @@ static INT dump_mac_table(RTMP_ADAPTER *pAd, UINT32 ent_type, BOOLEAN bReptCli, 
 		snprintf(tmp_str, temp_str_len, "%d/%d", (int)DataRate, (int)DataRate_r);
 		printk("%-10s", tmp_str);
 		snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%s\n", tmp_str);
+		snprintf(msg + strlen(msg), TotalLen - strlen(msg), "RX: %llu\n", pEntry->RxBytes);
+		snprintf(msg + strlen(msg), TotalLen - strlen(msg), "TX: %llu\n", pEntry->TxBytes);
+		snprintf(msg + strlen(msg), TotalLen - strlen(msg), "ConnectedTime: %u\n", pEntry->StaConnectTime);
 #ifdef CONFIG_HOTSPOT_R2
 		printk("%-7d", (int)pEntry->QosMapSupport);
 		snprintf(msg + strlen(msg), TotalLen - strlen(msg), "%d\n", (int)pEntry->QosMapSupport);
